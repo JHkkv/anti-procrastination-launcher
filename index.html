@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#FFB7C5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="description" content="将日常任务拆解为极小步骤，一次只显示一步，引导你逐步完成">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>拖延症启动器</title>
+  <style>
+    /* ===================== CSS Variables ===================== */
+    :root {
+      --bg-warm: #FFF8F0;
+      --bg-card: #FFFFFF;
+      --primary: #FFB7C5;
+      --primary-dark: #E89AAB;
+      --primary-light: #FFD6DF;
+      --secondary: #98D8C8;
+      --secondary-dark: #7BC4B2;
+      --secondary-light: #BBEAE0;
+      --accent: #D4A5E5;
+      --accent-dark: #C08AD4;
+      --accent-light: #E5C4F0;
+      --text-primary: #3A3A3A;
+      --text-secondary: #8B8B8B;
+      --text-hint: #BDBDBD;
+      --shadow-soft: 0 2px 12px rgba(0,0,0,0.06);
+      --shadow-card: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-float: 0 8px 32px rgba(0,0,0,0.12);
+      --radius-sm: 12px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 50%;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      --transition-slow: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ===================== Reset & Base ===================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg-warm);
+      color: var(--text-primary);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    input, textarea {
+      font-family: inherit;
+      border: none;
+      outline: none;
+    }
+
+    /* ===================== App Shell ===================== */
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ===================== Views ===================== */
+    .view {
+      display: none;
+      min-height: 100dvh;
+      padding: 20px;
+      padding-bottom: 100px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .view.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes bounceIn {
+      0% { opacity: 0; transform: scale(0.3); }
+      50% { transform: scale(1.05); }
+      70% { transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes confetti-fall {
+      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 183, 197, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(255, 183, 197, 0); }
+    }
+
+    @keyframes check-mark {
+      0% { stroke-dashoffset: 40; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    @keyframes celebrate-pop {
+      0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+      60% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    @keyframes ribbon {
+      0% { transform: scaleX(0); }
+      100% { transform: scaleX(1); }
+    }
+
+    /* ===================== Home View ===================== */
+    .home-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .home-date {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .home-greeting {
+      font-size: 1.15rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .streak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin: 12px 0 20px;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .streak-badge .streak-num {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary-dark);
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Flow Cards */
+    .flow-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-soft);
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flow-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      opacity: 0;
+      transition: var(--transition);
+    }
+
+    .flow-card:hover, .flow-card:active {
+      box-shadow: var(--shadow-card);
+      transform: translateY(-2px);
+    }
+
+    .flow-card:hover::before, .flow-card:active::before {
+      opacity: 1;
+    }
+
+    .flow-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .flow-card-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .flow-card-emoji {
+      font-size: 1.6rem;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-warm);
+      border-radius: var(--radius-sm);
+    }
+
+    .flow-card-name {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .flow-card-count {
+      font-size: 0.75rem;
+      color: var(--text-hint);
+      margin-top: 2px;
+    }
+
+    .flow-card-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress-bar {
+      width: 60px;
+      height: 6px;
+      background: #F0F0F0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      transition: width 0.6s ease;
+    }
+
+    .progress-text {
+      font-size: 0.75rem;
+      color: var(--text-hint);
+      min-width: 28px;
+      text-align: right;
+    }
+
+    .flow-card-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .flow-action-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .flow-start-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .flow-start-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+    }
+
+    .flow-edit-btn {
+      background: var(--bg-warm);
+      color: var(--text-secondary);
+    }
+
+    .flow-delete-btn {
+      background: #FFF0F0;
+      color: #E57373;
+      flex: 0 0 auto;
+      padding: 10px 14px;
+    }
+
+    .completed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--secondary-light);
+      color: var(--secondary-dark);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* ===================== Execute View ===================== */
+    .execute-view {
+      display: none;
+      min-height: 100dvh;
+      transition: var(--transition-slow);
+    }
+
+    .execute-view.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .execute-header {
+      text-align: center;
+      margin-bottom: 8px;
+      padding: 20px 0;
+      width: 100%;
+    }
+
+    .execute-flow-name {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .execute-progress {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .execute-progress-bar {
+      width: 120px;
+      height: 4px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .execute-progress-fill {
+      height: 100%;
+      background: white;
+      border-radius: 2px;
+      transition: width 0.6s ease;
+    }
+
+    .execute-progress-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .execute-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 20px;
+      width: 100%;
+    }
+
+    .step-emoji {
+      font-size: 4rem;
+      margin-bottom: 24px;
+      animation: bounceIn 0.6s ease;
+    }
+
+    .step-name {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      animation: slideUp 0.4s ease 0.1s both;
+      line-height: 1.4;
+    }
+
+    .step-hint {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      animation: slideUp 0.4s ease 0.2s both;
+    }
+
+    .step-encouragement {
+      font-size: 0.85rem;
+      color: var(--accent-dark);
+      min-height: 24px;
+      margin-bottom: 32px;
+      animation: fadeIn 0.5s ease;
+      font-style: italic;
+    }
+
+    .execute-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 300px;
+      animation: slideUp 0.4s ease 0.3s both;
+    }
+
+    .done-btn {
+      width: 100%;
+      padding: 18px 32px;
+      border-radius: var(--radius-lg);
+      font-size: 1.15rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      box-shadow: 0 4px 20px rgba(255, 183, 197, 0.4);
+      transition: var(--transition-bounce);
+      animation: pulse-glow 2s infinite;
+    }
+
+    .done-btn:active {
+      transform: scale(0.96);
+    }
+
+    .skip-btn {
+      background: transparent;
+      color: var(--text-hint);
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .skip-btn:hover {
+      color: var(--text-secondary);
+    }
+
+    .execute-back-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-soft);
+      z-index: 100;
+      font-size: 1.2rem;
+      color: var(--text-primary);
+    }
+
+    /* Step transition animation */
+    .step-content {
+      transition: var(--transition);
+    }
+
+    .step-content.entering {
+      animation: bounceIn 0.5s ease;
+    }
+
+    /* ===================== Celebrate View ===================== */
+    .celebrate-view {
+      display: none;
+      min-height: 100dvh;
+    }
+
+    .celebrate-view.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .confetti-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1000;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      top: -10px;
+      animation: confetti-fall linear forwards;
+    }
+
+    .celebrate-emoji {
+      font-size: 5rem;
+      margin-bottom: 24px;
+      animation: celebrate-pop 0.6s ease;
+    }
+
+    .celebrate-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      animation: slideUp 0.4s ease 0.2s both;
+    }
+
+    .celebrate-message {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.6;
+      max-width: 300px;
+      animation: slideUp 0.4s ease 0.3s both;
+    }
+
+    .celebrate-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 40px;
+      animation: slideUp 0.4s ease 0.4s both;
+    }
+
+    .celebrate-stat {
+      text-align: center;
+    }
+
+    .celebrate-stat-num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .celebrate-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-hint);
+      margin-top: 4px;
+    }
+
+    .celebrate-actions {
+      display: flex;
+      gap: 12px;
+      animation: slideUp 0.4s ease 0.5s both;
+    }
+
+    .celebrate-btn {
+      padding: 14px 28px;
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 600;
+      transition: var(--transition-bounce);
+    }
+
+    .celebrate-btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      box-shadow: 0 4px 16px rgba(255, 183, 197, 0.3);
+    }
+
+    .celebrate-btn.secondary {
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .celebrate-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* ===================== Create / Edit View ===================== */
+    .create-view {
+      padding-top: 60px;
+    }
+
+    .create-back-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-soft);
+      z-index: 100;
+      font-size: 1.2rem;
+      color: var(--text-primary);
+    }
+
+    .create-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-soft);
+      font-size: 1rem;
+      color: var(--text-primary);
+      transition: var(--transition);
+    }
+
+    .form-input:focus {
+      box-shadow: var(--shadow-card), 0 0 0 2px var(--primary-light);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-hint);
+    }
+
+    .emoji-picker {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 0;
+    }
+
+    .emoji-option {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .emoji-option.selected {
+      background: var(--primary-light);
+      box-shadow: 0 0 0 2px var(--primary);
+      transform: scale(1.1);
+    }
+
+    .emoji-option:active {
+      transform: scale(0.95);
+    }
+
+    .steps-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .step-edit-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      animation: slideUp 0.3s ease;
+    }
+
+    .step-edit-num {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .step-edit-input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-soft);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .step-edit-time {
+      width: 60px;
+      padding: 12px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      box-shadow: var(--shadow-soft);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .step-remove-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: #FFF0F0;
+      color: #E57373;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    .step-remove-btn:active {
+      transform: scale(0.9);
+    }
+
+    .add-step-btn {
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-warm);
+      color: var(--primary-dark);
+      font-size: 0.9rem;
+      margin-top: 8px;
+      transition: var(--transition);
+      border: 2px dashed var(--primary-light);
+    }
+
+    .add-step-btn:active {
+      background: var(--primary-light);
+    }
+
+    .save-flow-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      font-size: 1.05rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+      color: white;
+      margin-top: 24px;
+      box-shadow: 0 4px 16px rgba(152, 216, 200, 0.3);
+      transition: var(--transition-bounce);
+    }
+
+    .save-flow-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ===================== Stats View ===================== */
+    .stats-view {
+      padding-top: 60px;
+    }
+
+    .stats-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 20px 16px;
+      text-align: center;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .stat-icon {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-hint);
+      margin-top: 4px;
+    }
+
+    .history-list {
+      margin-top: 8px;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .history-emoji {
+      font-size: 1.3rem;
+    }
+
+    .history-info {
+      flex: 1;
+    }
+
+    .history-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .history-date {
+      font-size: 0.75rem;
+      color: var(--text-hint);
+    }
+
+    .history-steps {
+      font-size: 0.75rem;
+      color: var(--secondary-dark);
+      background: var(--secondary-light);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    /* ===================== FAB ===================== */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-float);
+      transition: var(--transition-bounce);
+      z-index: 50;
+    }
+
+    .fab:active {
+      transform: scale(0.9) rotate(90deg);
+    }
+
+    /* ===================== Bottom Nav ===================== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      padding: 8px 0;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+      z-index: 40;
+      border-top: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 24px;
+      background: transparent;
+      color: var(--text-hint);
+      font-size: 0.65rem;
+      transition: var(--transition);
+      border-radius: var(--radius-sm);
+    }
+
+    .nav-item.active {
+      color: var(--primary-dark);
+    }
+
+    .nav-item-icon {
+      font-size: 1.3rem;
+      transition: var(--transition);
+    }
+
+    .nav-item.active .nav-item-icon {
+      transform: scale(1.1);
+    }
+
+    /* ===================== Toast ===================== */
+    .toast {
+      position: fixed;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--bg-card);
+      padding: 14px 24px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-float);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      z-index: 2000;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      text-align: center;
+      max-width: 90%;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ===================== Empty State ===================== */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-hint);
+    }
+
+    .empty-state-emoji {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    /* ===================== Confirm Dialog ===================== */
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 1500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-overlay.show {
+      display: flex;
+    }
+
+    .dialog-box {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      width: 85%;
+      max-width: 320px;
+      text-align: center;
+      box-shadow: var(--shadow-float);
+      animation: bounceIn 0.4s ease;
+    }
+
+    .dialog-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .dialog-message {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .dialog-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .dialog-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .dialog-btn.cancel {
+      background: var(--bg-warm);
+      color: var(--text-secondary);
+    }
+
+    .dialog-btn.confirm {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+    }
+
+    .dialog-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ===================== Execute Background Gradient ===================== */
+    .execute-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      transition: background 1s ease;
+    }
+
+    .execute-bg.phase-0 { background: linear-gradient(180deg, #E8F4FD 0%, var(--bg-warm) 100%); }
+    .execute-bg.phase-1 { background: linear-gradient(180deg, #E0F2EE 0%, var(--bg-warm) 100%); }
+    .execute-bg.phase-2 { background: linear-gradient(180deg, #FFF3E0 0%, var(--bg-warm) 100%); }
+    .execute-bg.phase-3 { background: linear-gradient(180deg, #FFEBEE 0%, var(--bg-warm) 100%); }
+    .execute-bg.phase-4 { background: linear-gradient(180deg, #FCE4EC 0%, var(--bg-warm) 100%); }
+
+    /* ===================== Scrollbar ===================== */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-hint); border-radius: 2px; }
+
+    /* ===================== Responsive ===================== */
+    @media (min-width: 768px) {
+      .app {
+        max-width: 520px;
+      }
+    }
+
+    @media (max-width: 340px) {
+      .step-name {
+        font-size: 1.3rem;
+      }
+      .step-emoji {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Confirm Dialog -->
+  <div class="dialog-overlay" id="dialog">
+    <div class="dialog-box">
+      <div class="dialog-title" id="dialogTitle"></div>
+      <div class="dialog-message" id="dialogMessage"></div>
+      <div class="dialog-actions">
+        <button class="dialog-btn cancel" onclick="closeDialog()">取消</button>
+        <button class="dialog-btn confirm" id="dialogConfirmBtn">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confetti Container -->
+  <div class="confetti-container" id="confettiContainer"></div>
+
+  <div class="app" id="app">
+
+    <!-- ========== HOME VIEW ========== -->
+    <div class="view active" id="homeView">
+      <div class="home-header">
+        <div class="home-date" id="homeDate"></div>
+        <div class="home-greeting" id="homeGreeting"></div>
+      </div>
+
+      <div class="streak-badge" id="streakBadge">
+        <span>🔥</span>
+        <span>连续打卡 <span class="streak-num" id="streakNum">0</span> 天</span>
+      </div>
+
+      <div class="section-title">📋 我的流程</div>
+      <div id="flowList"></div>
+
+      <div class="section-title" style="margin-top: 24px;">🌟 预设模板</div>
+      <div id="templateList"></div>
+    </div>
+
+    <!-- ========== EXECUTE VIEW ========== -->
+    <div class="execute-view" id="executeView">
+      <div class="execute-bg" id="executeBg"></div>
+      <button class="execute-back-btn" onclick="handleExecuteBack()">←</button>
+
+      <div class="execute-header">
+        <div class="execute-flow-name" id="executeFlowName"></div>
+        <div class="execute-progress">
+          <div class="execute-progress-bar">
+            <div class="execute-progress-fill" id="executeProgressFill"></div>
+          </div>
+          <span class="execute-progress-text" id="executeProgressText"></span>
+        </div>
+      </div>
+
+      <div class="execute-body">
+        <div class="step-content" id="stepContent">
+          <div class="step-emoji" id="stepEmoji"></div>
+          <div class="step-name" id="stepName"></div>
+          <div class="step-hint" id="stepHint"></div>
+          <div class="step-encouragement" id="stepEncouragement"></div>
+        </div>
+        <div class="execute-actions">
+          <button class="done-btn" id="doneBtn" onclick="completeStep()">完成了 ✓</button>
+          <button class="skip-btn" onclick="skipStep()">跳过这一步 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CELEBRATE VIEW ========== -->
+    <div class="celebrate-view" id="celebrateView">
+      <div class="celebrate-emoji" id="celebrateEmoji">🎉</div>
+      <div class="celebrate-title" id="celebrateTitle"></div>
+      <div class="celebrate-message" id="celebrateMessage"></div>
+      <div class="celebrate-stats" id="celebrateStats"></div>
+      <div class="celebrate-actions">
+        <button class="celebrate-btn primary" onclick="restartCurrentFlow()">再来一次</button>
+        <button class="celebrate-btn secondary" onclick="showView('home')">回到首页</button>
+      </div>
+    </div>
+
+    <!-- ========== CREATE VIEW ========== -->
+    <div class="view create-view" id="createView">
+      <button class="create-back-btn" onclick="showView('home')">←</button>
+      <div class="create-title" id="createTitle">创建新流程</div>
+
+      <div class="form-group">
+        <label class="form-label">流程名称</label>
+        <input class="form-input" id="flowNameInput" placeholder="例如：早晨起床、开始学习..." maxlength="20">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">选择图标</label>
+        <div class="emoji-picker" id="emojiPicker"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">步骤列表</label>
+        <div class="steps-editor" id="stepsEditor"></div>
+        <button class="add-step-btn" onclick="addStepRow()">+ 添加步骤</button>
+      </div>
+
+      <button class="save-flow-btn" onclick="saveFlow()">保存流程</button>
+    </div>
+
+    <!-- ========== STATS VIEW ========== -->
+    <div class="view stats-view" id="statsView">
+      <button class="create-back-btn" onclick="showView('home')">←</button>
+      <div class="stats-title">我的记录</div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value" id="statToday">0</div>
+          <div class="stat-label">今日完成</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="statStreak">0</div>
+          <div class="stat-label">连续天数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✨</div>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">总完成次数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👣</div>
+          <div class="stat-value" id="statSteps">0</div>
+          <div class="stat-label">总步数</div>
+        </div>
+      </div>
+
+      <div class="section-title">📅 历史记录</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" data-view="home" onclick="showView('home')">
+      <span class="nav-item-icon">🏠</span>
+      <span>首页</span>
+    </button>
+    <button class="nav-item" data-view="stats" onclick="showView('stats')">
+      <span class="nav-item-icon">📊</span>
+      <span>记录</span>
+    </button>
+  </div>
+
+  <!-- FAB Button -->
+  <button class="fab" id="fab" onclick="showCreateView()">+</button>
+
+  <script>
+    /* ===================== Data & Constants ===================== */
+
+    // Encouragement messages - categorized
+    const MESSAGES = {
+      stepComplete: [
+        "你做到了 ✨",
+        "看，没那么难对吧",
+        "又近了一步呢",
+        "真棒！继续保持",
+        "你在行动，这就很棒了",
+        "一步一步来，你在前进",
+        "做得好！给自己点个赞",
+        "每一次完成都是胜利",
+        "你正在变得更好",
+        "这一步完成了，真好",
+        "加油，你比想象中更厉害",
+        "完成的感觉不错吧？",
+        "不积跬步无以至千里",
+        "你今天的努力很珍贵",
+        "行动本身就是勇气"
+      ],
+      allComplete: [
+        "太棒了！今天的你闪闪发光",
+        "全部完成了！给自己一个微笑吧",
+        "你看，你做到了全部！",
+        "每一步都不容易，但你都做到了",
+        "今天的你值得被好好对待",
+        "完成啦！休息一下吧",
+        "真了不起，全部坚持下来了",
+        "你比自己想象的要强大得多",
+        "一步一步，你走完了全程",
+        "这就是行动的力量，你证明了自己"
+      ],
+      skip: [
+        "没关系，跳过也是一种选择",
+        "不完美也没关系哦",
+        "跳过这一步，继续前进",
+        "照顾好自己最重要",
+        "随时可以回来再做"
+      ]
+    };
+
+    // Default flow templates
+    const DEFAULT_TEMPLATES = [
+      {
+        id: 'morning',
+        name: '早晨启动',
+        emoji: '🌅',
+        isDefault: true,
+        steps: [
+          { name: '慢慢睁开眼睛', time: '' },
+          { name: '喝一杯温水', time: '2分钟' },
+          { name: '刷牙', time: '3分钟' },
+          { name: '洗个脸', time: '2分钟' },
+          { name: '吃点早饭', time: '10分钟' }
+        ]
+      },
+      {
+        id: 'study',
+        name: '学习启动',
+        emoji: '📚',
+        isDefault: true,
+        steps: [
+          { name: '打开书本或笔记', time: '' },
+          { name: '读第一段', time: '5分钟' },
+          { name: '写一行笔记', time: '3分钟' },
+          { name: '继续往下读', time: '10分钟' }
+        ]
+      },
+      {
+        id: 'work',
+        name: '工作启动',
+        emoji: '💼',
+        isDefault: true,
+        steps: [
+          { name: '打开电脑', time: '' },
+          { name: '看待办清单', time: '2分钟' },
+          { name: '选最简单的任务', time: '' },
+          { name: '开始动手做', time: '5分钟' }
+        ]
+      },
+      {
+        id: 'sleep',
+        name: '睡前放松',
+        emoji: '🌙',
+        isDefault: true,
+        steps: [
+          { name: '放下手机', time: '' },
+          { name: '去洗漱', time: '5分钟' },
+          { name: '拉伸 5 分钟', time: '5分钟' },
+          { name: '关灯，闭眼休息', time: '' }
+        ]
+      },
+      {
+        id: 'clean',
+        name: '家务启动',
+        emoji: '🧹',
+        isDefault: true,
+        steps: [
+          { name: '拿一个垃圾袋', time: '' },
+          { name: '先收一件垃圾', time: '1分钟' },
+          { name: '再收一件', time: '1分钟' },
+          { name: '整理桌面', time: '5分钟' }
+        ]
+      }
+    ];
+
+    // Emoji options for flow creation
+    const EMOJI_OPTIONS = [
+      '🌸', '🌅', '📚', '💼', '🌙', '🧹', '🏃', '💪',
+      '🧘', '🎨', '🎵', '🍳', '📝', '💊', '🌱', '☕',
+      '🧘‍♀️', '🎒', '💤', '🧹', '🧺', '🛒', '📞', '✨'
+    ];
+
+    // Greetings pool
+    const GREETINGS = [
+      "今天也要温柔地对待自己哦",
+      "新的一天，慢慢来就好",
+      "先从最小的一步开始吧",
+      "你已经很努力了，今天轻轻松松就好",
+      "不着急，一步一步来",
+      "今天的你，值得被善待",
+      "能打开这个 app，就已经迈出了第一步",
+      "每一小步，都是对自己的温柔"
+    ];
+
+    // App emojis for steps (mapping step keywords to emojis)
+    const STEP_EMOJI_MAP = {
+      '眼': '👁️', '醒': '😊', '床': '🛏️', '起': '🙋',
+      '喝': '💧', '水': '💧', '刷牙': '🪥', '牙': '🪥',
+      '洗': '🚿', '脸': '😊', '早饭': '🥣', '吃': '🍽️', '餐': '🍽️',
+      '书': '📖', '读': '📖', '笔': '✏️', '写': '✍️', '笔记': '📝',
+      '电脑': '💻', '待办': '📋', '清单': '📋',
+      '手机': '📱', '灯': '💡', '关': '🌑', '拉伸': '🤸', '伸': '🤸',
+      '垃圾': '🗑️', '袋': '🛍️', '收': '📦', '整理': '🗄️', '桌面': '🗄️',
+      '运动': '🏃', '跑': '🏃', '瑜伽': '🧘',
+      '工作': '💼', '任务': '📋', '做': '✊',
+      '休息': '😴', '睡': '😴', '放松': '😌'
+    };
+
+    /* ===================== State ===================== */
+    let state = {
+      currentView: 'home',
+      flows: [],           // user-created flows
+      history: [],         // completion records
+      todayCompleted: [],  // today's completed flow ids
+      streak: 0,
+      lastActiveDate: null,
+      // Execution state
+      executingFlow: null,
+      executingStepIndex: 0,
+      editingFlowId: null  // null = create new, id = edit existing
+    };
+
+    /* ===================== Storage ===================== */
+    function loadState() {
+      try {
+        const saved = localStorage.getItem('procrastination-launcher');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state.flows = parsed.flows || [];
+          state.history = parsed.history || [];
+          state.todayCompleted = parsed.todayCompleted || [];
+          state.streak = parsed.streak || 0;
+          state.lastActiveDate = parsed.lastActiveDate || null;
+        }
+        checkStreak();
+      } catch (e) {
+        console.error('Failed to load state:', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        const toSave = {
+          flows: state.flows,
+          history: state.history,
+          todayCompleted: state.todayCompleted,
+          streak: state.streak,
+          lastActiveDate: state.lastActiveDate
+        };
+        localStorage.setItem('procrastination-launcher', JSON.stringify(toSave));
+      } catch (e) {
+        console.error('Failed to save state:', e);
+      }
+    }
+
+    /* ===================== Streak Logic ===================== */
+    function getTodayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function getYesterdayStr() {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function checkStreak() {
+      const today = getTodayStr();
+      const yesterday = getYesterdayStr();
+
+      if (state.lastActiveDate === today) {
+        // Already active today, streak intact
+        return;
+      } else if (state.lastActiveDate === yesterday) {
+        // Yesterday was active, streak continues today
+        return;
+      } else if (state.lastActiveDate !== today) {
+        // Streak broken, reset
+        if (state.lastActiveDate && state.lastActiveDate !== yesterday) {
+          state.streak = 0;
+          state.todayCompleted = [];
+        }
+      }
+    }
+
+    function updateStreakOnComplete() {
+      const today = getTodayStr();
+      if (state.lastActiveDate !== today) {
+        state.streak += 1;
+      }
+      state.lastActiveDate = today;
+      if (!state.todayCompleted.includes(state.executingFlow.id)) {
+        state.todayCompleted.push(state.executingFlow.id);
+      }
+      saveState();
+    }
+
+    /* ===================== View Management ===================== */
+    function showView(viewName) {
+      // Hide all views
+      document.querySelectorAll('.view, .execute-view, .celebrate-view').forEach(v => {
+        v.classList.remove('active');
+      });
+
+      // Show target view
+      const target = document.getElementById(viewName + 'View');
+      if (target) {
+        target.classList.add('active');
+      }
+
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.view === viewName);
+      });
+
+      // Show/hide nav and fab
+      const nav = document.getElementById('bottomNav');
+      const fab = document.getElementById('fab');
+      const hideNav = ['execute', 'celebrate', 'create'].includes(viewName);
+      nav.style.display = hideNav ? 'none' : 'flex';
+      fab.style.display = (viewName === 'home') ? 'flex' : 'none';
+
+      state.currentView = viewName;
+
+      // Render view-specific content
+      if (viewName === 'home') renderHome();
+      if (viewName === 'stats') renderStats();
+    }
+
+    /* ===================== Home View ===================== */
+    function renderHome() {
+      // Date
+      const now = new Date();
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+      const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 星期${weekdays[now.getDay()]}`;
+      document.getElementById('homeDate').textContent = dateStr;
+
+      // Greeting
+      const hour = now.getHours();
+      let timeGreeting = '';
+      if (hour < 6) timeGreeting = '夜深了，注意休息哦';
+      else if (hour < 9) timeGreeting = '早安，新的一天开始了';
+      else if (hour < 12) timeGreeting = '上午好，今天过得怎么样？';
+      else if (hour < 14) timeGreeting = '中午好，记得吃饭';
+      else if (hour < 18) timeGreeting = '下午好，继续加油';
+      else if (hour < 22) timeGreeting = '晚上好，辛苦了';
+      else timeGreeting = '夜深了，早点休息吧';
+
+      document.getElementById('homeGreeting').textContent = timeGreeting + ' — ' + GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+
+      // Streak
+      document.getElementById('streakNum').textContent = state.streak;
+
+      // User flows
+      renderFlowList();
+
+      // Templates
+      renderTemplateList();
+    }
+
+    function renderFlowList() {
+      const container = document.getElementById('flowList');
+
+      if (state.flows.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-emoji">🌸</div>
+            <div class="empty-state-text">还没有自定义流程<br>点击下方模板开始，或创建自己的流程</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.flows.map(flow => {
+        const isCompleted = state.todayCompleted.includes(flow.id);
+        return `
+          <div class="flow-card" data-flow-id="${flow.id}">
+            <div class="flow-card-header">
+              <div class="flow-card-info">
+                <div class="flow-card-emoji">${flow.emoji}</div>
+                <div>
+                  <div class="flow-card-name">${escapeHtml(flow.name)}</div>
+                  <div class="flow-card-count">${flow.steps.length} 步${isCompleted ? ' · 已完成' : ''}</div>
+                </div>
+              </div>
+              ${isCompleted ? '<span class="completed-badge">✅ 今日已完成</span>' : ''}
+            </div>
+            <div class="flow-card-actions">
+              <button class="flow-action-btn flow-start-btn" onclick="startFlow('${flow.id}')">
+                ${isCompleted ? '再做一次' : '开始'} →
+              </button>
+              <button class="flow-action-btn flow-edit-btn" onclick="editFlow('${flow.id}')">编辑</button>
+              <button class="flow-action-btn flow-delete-btn" onclick="confirmDeleteFlow('${flow.id}')">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderTemplateList() {
+      const container = document.getElementById('templateList');
+
+      container.innerHTML = DEFAULT_TEMPLATES.map(tpl => {
+        // Check if user already has a flow with same template id
+        const exists = state.flows.some(f => f.templateId === tpl.id);
+        return `
+          <div class="flow-card" data-template-id="${tpl.id}">
+            <div class="flow-card-header">
+              <div class="flow-card-info">
+                <div class="flow-card-emoji">${tpl.emoji}</div>
+                <div>
+                  <div class="flow-card-name">${escapeHtml(tpl.name)}</div>
+                  <div class="flow-card-count">${tpl.steps.length} 步</div>
+                </div>
+              </div>
+              ${exists ? '<span class="completed-badge">已添加</span>' : ''}
+            </div>
+            <div class="flow-card-actions">
+              <button class="flow-action-btn flow-start-btn" onclick="startTemplate('${tpl.id}')">试试看 →</button>
+              ${!exists ? `<button class="flow-action-btn flow-edit-btn" onclick="addTemplate('${tpl.id}')">添加到我的</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ===================== Flow Operations ===================== */
+    function generateId() {
+      return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    }
+
+    function startFlow(flowId) {
+      const flow = state.flows.find(f => f.id === flowId);
+      if (!flow) return;
+      beginExecution(flow);
+    }
+
+    function startTemplate(templateId) {
+      const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
+      if (!tpl) return;
+      // Create a temporary flow from template (don't save to user flows)
+      const tempFlow = {
+        id: tpl.id + '_temp_' + Date.now(),
+        name: tpl.name,
+        emoji: tpl.emoji,
+        steps: tpl.steps.map(s => ({ ...s })),
+        templateId: tpl.id
+      };
+      beginExecution(tempFlow);
+    }
+
+    function addTemplate(templateId) {
+      const tpl = DEFAULT_TEMPLATES.find(t => t.id === templateId);
+      if (!tpl) return;
+      if (state.flows.some(f => f.templateId === tpl.id)) {
+        showToast('已经添加过了哦');
+        return;
+      }
+      const newFlow = {
+        id: generateId(),
+        name: tpl.name,
+        emoji: tpl.emoji,
+        steps: tpl.steps.map(s => ({ ...s })),
+        templateId: tpl.id
+      };
+      state.flows.push(newFlow);
+      saveState();
+      renderHome();
+      showToast('已添加到我的流程 ✓');
+    }
+
+    function confirmDeleteFlow(flowId) {
+      const flow = state.flows.find(f => f.id === flowId);
+      if (!flow) return;
+      showDialog(
+        '删除流程',
+        `确定要删除「${flow.name}」吗？删除后无法恢复。`,
+        () => {
+          state.flows = state.flows.filter(f => f.id !== flowId);
+          saveState();
+          renderHome();
+          showToast('已删除');
+        }
+      );
+    }
+
+    /* ===================== Create / Edit View ===================== */
+    function showCreateView(flowId) {
+      state.editingFlowId = flowId || null;
+
+      const isEdit = !!flowId;
+      document.getElementById('createTitle').textContent = isEdit ? '编辑流程' : '创建新流程';
+
+      // Populate emoji picker
+      const picker = document.getElementById('emojiPicker');
+      const currentFlow = isEdit ? state.flows.find(f => f.id === flowId) : null;
+      const selectedEmoji = currentFlow ? currentFlow.emoji : EMOJI_OPTIONS[0];
+
+      picker.innerHTML = EMOJI_OPTIONS.map(e => `
+        <button class="emoji-option ${e === selectedEmoji ? 'selected' : ''}"
+                onclick="selectEmoji(this, '${e}')">${e}</button>
+      `).join('');
+
+      // Populate name
+      document.getElementById('flowNameInput').value = currentFlow ? currentFlow.name : '';
+
+      // Populate steps
+      const editor = document.getElementById('stepsEditor');
+      const steps = currentFlow ? currentFlow.steps : [
+        { name: '', time: '' },
+        { name: '', time: '' },
+        { name: '', time: '' }
+      ];
+
+      renderStepRows(steps);
+
+      showView('create');
+    }
+
+    function editFlow(flowId) {
+      showCreateView(flowId);
+    }
+
+    function selectEmoji(btn, emoji) {
+      document.querySelectorAll('.emoji-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    }
+
+    function renderStepRows(steps) {
+      const editor = document.getElementById('stepsEditor');
+      editor.innerHTML = steps.map((step, i) => `
+        <div class="step-edit-row" data-index="${i}">
+          <span class="step-edit-num">${i + 1}</span>
+          <input class="step-edit-input" placeholder="这一步做什么..." value="${escapeHtml(step.name)}" maxlength="30">
+          <input class="step-edit-time" placeholder="时长" value="${escapeHtml(step.time || '')}" maxlength="10">
+          <button class="step-remove-btn" onclick="removeStepRow(this)">×</button>
+        </div>
+      `).join('');
+    }
+
+    function addStepRow() {
+      const editor = document.getElementById('stepsEditor');
+      const count = editor.children.length;
+      const row = document.createElement('div');
+      row.className = 'step-edit-row';
+      row.dataset.index = count;
+      row.innerHTML = `
+        <span class="step-edit-num">${count + 1}</span>
+        <input class="step-edit-input" placeholder="这一步做什么..." maxlength="30">
+        <input class="step-edit-time" placeholder="时长" value="" maxlength="10">
+        <button class="step-remove-btn" onclick="removeStepRow(this)">×</button>
+      `;
+      editor.appendChild(row);
+      row.querySelector('.step-edit-input').focus();
+    }
+
+    function removeStepRow(btn) {
+      const row = btn.parentElement;
+      const editor = document.getElementById('stepsEditor');
+      if (editor.children.length <= 1) {
+        showToast('至少需要一个步骤哦');
+        return;
+      }
+      row.style.animation = 'fadeIn 0.2s ease reverse';
+      setTimeout(() => {
+        row.remove();
+        // Re-number
+        Array.from(editor.children).forEach((child, i) => {
+          child.querySelector('.step-edit-num').textContent = i + 1;
+        });
+      }, 200);
+    }
+
+    function saveFlow() {
+      const name = document.getElementById('flowNameInput').value.trim();
+      if (!name) {
+        showToast('请给流程起个名字');
+        document.getElementById('flowNameInput').focus();
+        return;
+      }
+
+      const selectedEmojiBtn = document.querySelector('.emoji-option.selected');
+      const emoji = selectedEmojiBtn ? selectedEmojiBtn.textContent : '🌸';
+
+      // Collect steps
+      const rows = document.querySelectorAll('#stepsEditor .step-edit-row');
+      const steps = [];
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const stepName = inputs[0].value.trim();
+        const stepTime = inputs[1].value.trim();
+        if (stepName) {
+          steps.push({ name: stepName, time: stepTime });
+        }
+      });
+
+      if (steps.length === 0) {
+        showToast('至少添加一个步骤');
+        return;
+      }
+
+      if (state.editingFlowId) {
+        // Edit existing
+        const idx = state.flows.findIndex(f => f.id === state.editingFlowId);
+        if (idx >= 0) {
+          state.flows[idx] = {
+            ...state.flows[idx],
+            name,
+            emoji,
+            steps
+          };
+        }
+        showToast('流程已更新 ✓');
+      } else {
+        // Create new
+        const newFlow = {
+          id: generateId(),
+          name,
+          emoji,
+          steps
+        };
+        state.flows.push(newFlow);
+        showToast('流程创建成功 ✨');
+      }
+
+      saveState();
+      showView('home');
+    }
+
+    /* ===================== Execution ===================== */
+    function beginExecution(flow) {
+      state.executingFlow = {
+        ...flow,
+        steps: flow.steps.map(s => ({ ...s }))
+      };
+      state.executingStepIndex = 0;
+      showView('execute');
+      renderCurrentStep();
+    }
+
+    function renderCurrentStep() {
+      const flow = state.executingFlow;
+      if (!flow) return;
+
+      const idx = state.executingStepIndex;
+      const total = flow.steps.length;
+      const step = flow.steps[idx];
+
+      // Header
+      document.getElementById('executeFlowName').textContent = flow.emoji + ' ' + flow.name;
+      document.getElementById('executeProgressFill').style.width = ((idx) / total * 100) + '%';
+      document.getElementById('executeProgressText').textContent = `${idx + 1} / ${total}`;
+
+      // Step content
+      document.getElementById('stepEmoji').textContent = getStepEmoji(step.name);
+      document.getElementById('stepName').textContent = step.name;
+      document.getElementById('stepHint').textContent = step.time ? `预计 ${step.time}` : '';
+
+      // Reset encouragement
+      document.getElementById('stepEncouragement').textContent = '';
+
+      // Background phase
+      const phase = Math.min(4, Math.floor(idx / Math.max(1, Math.ceil(total / 5))));
+      document.getElementById('executeBg').className = 'execute-bg phase-' + phase;
+
+      // Animate step content
+      const content = document.getElementById('stepContent');
+      content.classList.remove('entering');
+      void content.offsetWidth; // force reflow
+      content.classList.add('entering');
+
+      // If this is the last step, change button text
+      const doneBtn = document.getElementById('doneBtn');
+      doneBtn.textContent = idx === total - 1 ? '全部完成！🎉' : '完成了 ✓';
+    }
+
+    function getStepEmoji(stepName) {
+      // Try to find a matching emoji based on keywords
+      for (const [keyword, emoji] of Object.entries(STEP_EMOJI_MAP)) {
+        if (stepName.includes(keyword)) return emoji;
+      }
+      // Default emojis based on step position
+      const defaults = ['👆', '✌️', '👌', '✊', '🙌'];
+      return defaults[state.executingStepIndex % defaults.length];
+    }
+
+    function completeStep() {
+      const flow = state.executingFlow;
+      if (!flow) return;
+
+      const idx = state.executingStepIndex;
+      const total = flow.steps.length;
+
+      // Show encouragement for this step
+      const msg = pickRandom(MESSAGES.stepComplete);
+      document.getElementById('stepEncouragement').textContent = msg;
+
+      // Haptic feedback if available
+      if (navigator.vibrate) navigator.vibrate(30);
+
+      if (idx + 1 >= total) {
+        // All done!
+        setTimeout(() => finishExecution(), 800);
+      } else {
+        // Move to next step
+        state.executingStepIndex += 1;
+        setTimeout(() => renderCurrentStep(), 600);
+      }
+    }
+
+    function skipStep() {
+      const flow = state.executingFlow;
+      if (!flow) return;
+
+      const msg = pickRandom(MESSAGES.skip);
+      document.getElementById('stepEncouragement').textContent = msg;
+
+      const idx = state.executingStepIndex;
+      const total = flow.steps.length;
+
+      if (idx + 1 >= total) {
+        setTimeout(() => finishExecution(), 800);
+      } else {
+        state.executingStepIndex += 1;
+        setTimeout(() => renderCurrentStep(), 600);
+      }
+    }
+
+    function handleExecuteBack() {
+      showDialog(
+        '退出流程',
+        '确定要退出当前流程吗？进度不会保存。',
+        () => {
+          state.executingFlow = null;
+          state.executingStepIndex = 0;
+          document.getElementById('executeBg').className = 'execute-bg';
+          showView('home');
+        }
+      );
+    }
+
+    function finishExecution() {
+      const flow = state.executingFlow;
+      if (!flow) return;
+
+      // Record to history
+      const record = {
+        flowName: flow.name,
+        emoji: flow.emoji,
+        steps: flow.steps.length,
+        date: new Date().toISOString()
+      };
+      state.history.unshift(record);
+
+      // Keep last 100 records
+      if (state.history.length > 100) {
+        state.history = state.history.slice(0, 100);
+      }
+
+      // Update streak
+      updateStreakOnComplete();
+
+      // Show celebrate view
+      showCelebrateView(flow);
+    }
+
+    function restartCurrentFlow() {
+      if (state.executingFlow) {
+        beginExecution(state.executingFlow);
+      } else {
+        showView('home');
+      }
+    }
+
+    /* ===================== Celebrate View ===================== */
+    function showCelebrateView(flow) {
+      const totalSteps = flow.steps.length;
+      const title = pickRandom(MESSAGES.allComplete);
+
+      document.getElementById('celebrateTitle').textContent = title;
+      document.getElementById('celebrateMessage').textContent =
+        `你完成了「${flow.name}」的全部 ${totalSteps} 个步骤，每一步都值得庆祝！`;
+
+      document.getElementById('celebrateStats').innerHTML = `
+        <div class="celebrate-stat">
+          <div class="celebrate-stat-num">${totalSteps}</div>
+          <div class="celebrate-stat-label">完成步数</div>
+        </div>
+        <div class="celebrate-stat">
+          <div class="celebrate-stat-num">${state.todayCompleted.length}</div>
+          <div class="celebrate-stat-label">今日流程</div>
+        </div>
+        <div class="celebrate-stat">
+          <div class="celebrate-stat-num">${state.streak}</div>
+          <div class="celebrate-stat-label">连续天数</div>
+        </div>
+      `;
+
+      showView('celebrate');
+      launchConfetti();
+    }
+
+    function launchConfetti() {
+      const container = document.getElementById('confettiContainer');
+      container.innerHTML = '';
+
+      const colors = ['#FFB7C5', '#98D8C8', '#D4A5E5', '#FFD700', '#87CEEB', '#FFA07A'];
+
+      for (let i = 0; i < 40; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.width = (Math.random() * 8 + 6) + 'px';
+        piece.style.height = (Math.random() * 8 + 6) + 'px';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+        piece.style.animationDelay = Math.random() * 1 + 's';
+        container.appendChild(piece);
+      }
+
+      // Cleanup after animation
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 4000);
+    }
+
+    /* ===================== Stats View ===================== */
+    function renderStats() {
+      document.getElementById('statToday').textContent = state.todayCompleted.length;
+      document.getElementById('statStreak').textContent = state.streak;
+      document.getElementById('statTotal').textContent = state.history.length;
+      document.getElementById('statSteps').textContent =
+        state.history.reduce((sum, r) => sum + r.steps, 0);
+
+      // History list
+      const list = document.getElementById('historyList');
+
+      if (state.history.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-emoji">📅</div>
+            <div class="empty-state-text">还没有完成记录<br>完成第一个流程后会显示在这里</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Group by date
+      const grouped = {};
+      state.history.forEach(record => {
+        const dateStr = new Date(record.date).toLocaleDateString('zh-CN', {
+          month: 'long', day: 'numeric', weekday: 'short'
+        });
+        if (!grouped[dateStr]) grouped[dateStr] = [];
+        grouped[dateStr].push(record);
+      });
+
+      let html = '';
+      const dates = Object.keys(grouped);
+      dates.slice(0, 10).forEach(dateStr => {
+        html += `<div style="font-size:0.8rem;color:var(--text-hint);margin:16px 0 8px;padding-left:4px;">${dateStr}</div>`;
+        grouped[dateStr].forEach(record => {
+          const time = new Date(record.date).toLocaleTimeString('zh-CN', {
+            hour: '2-digit', minute: '2-digit'
+          });
+          html += `
+            <div class="history-item">
+              <span class="history-emoji">${record.emoji}</span>
+              <div class="history-info">
+                <div class="history-name">${escapeHtml(record.flowName)}</div>
+                <div class="history-date">${time}</div>
+              </div>
+              <span class="history-steps">${record.steps} 步</span>
+            </div>
+          `;
+        });
+      });
+
+      list.innerHTML = html;
+    }
+
+    /* ===================== Dialog ===================== */
+    let dialogCallback = null;
+
+    function showDialog(title, message, onConfirm) {
+      document.getElementById('dialogTitle').textContent = title;
+      document.getElementById('dialogMessage').textContent = message;
+      document.getElementById('dialog').classList.add('show');
+      dialogCallback = onConfirm;
+      document.getElementById('dialogConfirmBtn').onclick = () => {
+        closeDialog();
+        if (dialogCallback) dialogCallback();
+      };
+    }
+
+    function closeDialog() {
+      document.getElementById('dialog').classList.remove('show');
+      dialogCallback = null;
+    }
+
+    /* ===================== Toast ===================== */
+    let toastTimer = null;
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    /* ===================== Utilities ===================== */
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    /* ===================== Service Worker ===================== */
+    function registerServiceWorker() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('Service Worker registered, scope:', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed:', err.message);
+        });
+      }
+    }
+
+    /* ===================== Init ===================== */
+    function init() {
+      loadState();
+      renderHome();
+      registerServiceWorker();
+
+      // Handle back button
+      window.addEventListener('popstate', (e) => {
+        if (state.currentView === 'execute') {
+          handleExecuteBack();
+        } else if (state.currentView !== 'home') {
+          showView('home');
+        }
+      });
+    }
+
+    // Start the app
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

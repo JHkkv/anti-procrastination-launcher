@@ -1,0 +1,651 @@
+/**
+ * 拖延症启动器 - 治愈风微动画系统
+ * Healing-style micro-animation system for the Procrastination Launcher
+ *
+ * 设计原则:
+ *   1. 动画时长 200ms-600ms, 绝不超过 1s
+ *   2. 只用 transform / opacity (GPU 加速, 不触发布局重排)
+ *   3. 支持 prefers-reduced-motion
+ *   4. 纯 CSS, 零 JS 依赖
+ *   5. "治愈" > "炫酷" — 柔和、缓慢、温暖
+ *
+ * 缓动函数:
+ *   --ease-gentle  — 常规过渡
+ *   --ease-bounce  — 需要弹跳感的元素
+ *   --ease-smooth  — 自然衰减
+ *
+ * 使用示例写在每段注释中, 直接把 class 加到 HTML 元素上即可。
+ */
+
+/* ============================================================
+   0. 设计令牌 (Design Tokens)
+   ============================================================ */
+:root {
+  /* ---- 缓动 ---- */
+  --ease-gentle:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce:  cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-smooth:  cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* ---- 常用时长 ---- */
+  --dur-fast:   200ms;
+  --dur-normal: 350ms;
+  --dur-slow:   500ms;
+  --dur-bloom:  600ms;
+
+  /* ---- 治愈配色 (动画渐变用) ---- */
+  --pastel-pink:   #f8b4c8;
+  --pastel-peach:  #fcd5b5;
+  --pastel-yellow: #fef3b0;
+  --pastel-green:  #b8e6c8;
+  --pastel-blue:   #b5d8f7;
+  --pastel-lavender: #d5c8f7;
+  --celebration-gold: #ffd700;
+  --soft-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+
+/* ============================================================
+   1. 步骤完成动画 (Step Completion)
+   ============================================================ */
+
+/* --- 1a. "完成了" 按钮: 按下缩放再弹回 --- */
+/* 用法: <button class="btn-complete">完成了!</button> */
+.btn-complete {
+  transition: transform var(--dur-normal) var(--ease-bounce),
+              box-shadow var(--dur-normal) var(--ease-gentle);
+}
+.btn-complete:active {
+  transform: scale(0.88);
+  box-shadow: var(--soft-shadow);
+}
+.btn-complete.completing {
+  animation: btn-press-pop var(--dur-slow) var(--ease-bounce) forwards;
+}
+@keyframes btn-press-pop {
+  0%   { transform: scale(1); }
+  20%  { transform: scale(0.85); }
+  50%  { transform: scale(1.06); }
+  75%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+
+/* --- 1b. 当前步骤卡片: 向上滑出 + 淡出 --- */
+/* 用法: <div class="step-card step-card--exit">...</div> */
+.step-card {
+  transition: transform var(--dur-slow) var(--ease-gentle),
+              opacity var(--dur-slow) var(--ease-gentle);
+}
+.step-card--exit {
+  animation: step-exit-up var(--dur-slow) var(--ease-gentle) forwards;
+}
+@keyframes step-exit-up {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+
+/* --- 1c. 粒子效果: 小星星 / 花瓣散出 --- */
+/* 用法: 在按钮旁放置 <span class="particles">, JS toggle .particles--burst */
+.particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.particles--burst .particle {
+  animation: particle-fly var(--dur-bloom) var(--ease-smooth) forwards;
+}
+/* 每个 .particle 用内联 style 或 nth-child 设不同方向 */
+.particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  left: 50%;
+  top: 50%;
+}
+/* 默认 6 个粒子方向 */
+.particle:nth-child(1) { --px: -30px; --py: -35px; --rot: -40deg; background: var(--pastel-pink); }
+.particle:nth-child(2) { --px:  28px; --py: -30px; --rot:  30deg; background: var(--pastel-yellow); }
+.particle:nth-child(3) { --px: -35px; --py:  20px; --rot: -60deg; background: var(--pastel-lavender); }
+.particle:nth-child(4) { --px:  32px; --py:  25px; --rot:  50deg; background: var(--pastel-green); }
+.particle:nth-child(5) { --px:   0;   --py: -40px; --rot:   0;    background: var(--pastel-peach); }
+.particle:nth-child(6) { --px:   0;   --py:  30px; --rot: 180deg; background: var(--pastel-blue); }
+@keyframes particle-fly {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+  60%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--px)), calc(-50% + var(--py))) scale(1) rotate(var(--rot)); }
+}
+
+
+/* --- 1d. 下一步卡片: 从下方滑入 --- */
+/* 用法: <div class="step-card step-card--enter">...</div> */
+.step-card--enter {
+  animation: step-enter-up var(--dur-slow) var(--ease-gentle) both;
+}
+@keyframes step-enter-up {
+  0%   { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ============================================================
+   2. 进度条动画 (Progress Bar)
+   ============================================================ */
+
+/* --- 2a. 基础进度条 --- */
+/* 用法:
+   <div class="progress-bar">
+     <div class="progress-bar__fill" style="width:60%"></div>
+   </div>
+*/
+.progress-bar {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: #f0ece6;
+  overflow: hidden;
+}
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pastel-pink), var(--pastel-peach), var(--pastel-yellow));
+  background-size: 200% 100%;
+  transition: width var(--dur-slow) var(--ease-smooth);
+  animation: progress-gradient-drift 4s linear infinite;
+}
+@keyframes progress-gradient-drift {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+
+/* --- 2b. 进度增加时的"呼吸"光效 --- */
+/* 用法: 进度更新时 JS 添加 .progress-bar__fill--pulse, 动画结束后移除 */
+.progress-bar__fill--pulse {
+  animation: progress-pulse var(--dur-bloom) var(--ease-gentle) 2;
+}
+@keyframes progress-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.35); }
+}
+
+
+/* --- 2c. 完成时满格 + 闪烁庆祝 --- */
+/* 用法: 进度 100% 时添加 .progress-bar--complete */
+.progress-bar--complete .progress-bar__fill {
+  background: linear-gradient(90deg, var(--pastel-green), var(--pastel-yellow), var(--pastel-peach));
+  background-size: 200% 100%;
+  animation: progress-complete-glow 1s var(--ease-smooth) 3;
+}
+@keyframes progress-complete-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50%      { filter: brightness(1.4) saturate(1.2); }
+}
+/* 满格后额外的光环 */
+.progress-bar--complete::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pastel-yellow), var(--pastel-green));
+  opacity: 0;
+  animation: progress-ring-flash var(--dur-bloom) var(--ease-gentle) 2;
+  z-index: -1;
+}
+@keyframes progress-ring-flash {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 0.4; }
+}
+
+
+/* ============================================================
+   3. 页面过渡 (Page Transitions)
+   ============================================================ */
+
+/* --- 3a. 首页 → 流程执行: 卡片展开过渡 --- */
+/* 用法: 父容器添加 .page-transition--expand-in */
+.page-transition--expand-in {
+  animation: page-expand var(--dur-bloom) var(--ease-gentle) both;
+}
+@keyframes page-expand {
+  0%   { opacity: 0; transform: scale(0.92) translateY(16px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* --- 3b. 页面退出 (反向) --- */
+/* 用法: 离开页面时添加 .page-transition--shrink-out */
+.page-transition--shrink-out {
+  animation: page-shrink var(--dur-normal) var(--ease-gentle) forwards;
+}
+@keyframes page-shrink {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95) translateY(-10px); }
+}
+
+
+/* --- 3c. 流程执行 → 完成页: 花瓣 / 烟花叠加层 --- */
+/* 用法: <div class="celebration-overlay"></div> 覆盖全屏 */
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 900;
+  overflow: hidden;
+}
+/* 花瓣层 — 纯 CSS 多个 div */
+.celebration-petal {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--pastel-pink);
+  border-radius: 50% 0 50% 50%;
+  opacity: 0;
+  top: -20px;
+  animation: petal-fall linear forwards;
+}
+.celebration-petal:nth-child(1)  { left: 8%;  --drift: -20px; animation-duration: 3.2s; animation-delay: 0s;    background: var(--pastel-pink); }
+.celebration-petal:nth-child(2)  { left: 20%; --drift:  15px; animation-duration: 3.6s; animation-delay: 0.2s;  background: var(--pastel-peach); }
+.celebration-petal:nth-child(3)  { left: 35%; --drift: -25px; animation-duration: 2.8s; animation-delay: 0.5s;  background: var(--pastel-lavender); }
+.celebration-petal:nth-child(4)  { left: 50%; --drift:  20px; animation-duration: 3.4s; animation-delay: 0.1s;  background: var(--pastel-yellow); }
+.celebration-petal:nth-child(5)  { left: 65%; --drift: -18px; animation-duration: 3.0s; animation-delay: 0.4s;  background: var(--pastel-green); }
+.celebration-petal:nth-child(6)  { left: 78%; --drift:  22px; animation-duration: 3.5s; animation-delay: 0.3s;  background: var(--pastel-pink); }
+.celebration-petal:nth-child(7)  { left: 90%; --drift: -15px; animation-duration: 2.9s; animation-delay: 0.6s;  background: var(--pastel-blue); }
+.celebration-petal:nth-child(8)  { left: 15%; --drift:  18px; animation-duration: 3.8s; animation-delay: 0.7s;  background: var(--pastel-peach); }
+.celebration-petal:nth-child(9)  { left: 42%; --drift: -22px; animation-duration: 3.1s; animation-delay: 0.15s; background: var(--pastel-lavender); }
+.celebration-petal:nth-child(10) { left: 72%; --drift:  12px; animation-duration: 3.3s; animation-delay: 0.45s; background: var(--pastel-yellow); }
+
+@keyframes petal-fall {
+  0%   { opacity: 0; transform: translateY(0) translateX(0) rotate(0deg) scale(0.6); }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(100vh) translateX(var(--drift)) rotate(360deg) scale(1); }
+}
+
+
+/* ============================================================
+   4. 按钮交互 (Button Interactions)
+   ============================================================ */
+
+/* --- 4a. 通用 hover: 微上浮 + 阴影 --- */
+/* 用法: 任意 <button> 或可点击元素加 .btn-hover */
+.btn-hover {
+  transition: transform var(--dur-fast) var(--ease-gentle),
+              box-shadow var(--dur-fast) var(--ease-gentle);
+}
+.btn-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--hover-shadow);
+}
+.btn-hover:active {
+  transform: translateY(0);
+  box-shadow: var(--soft-shadow);
+}
+
+
+/* --- 4b. 主按钮涟漪效果 --- */
+/* 用法: <button class="btn-primary">...</button>
+   JS: click 时在按钮内插入 <span class="ripple"></span> 并在动画结束时移除 */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0);
+  animation: ripple-expand var(--dur-slow) var(--ease-gentle) forwards;
+  pointer-events: none;
+}
+@keyframes ripple-expand {
+  0%   { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+
+/* --- 4c. 完成按钮: "呼吸" 微动画 (暗示 "按我") --- */
+/* 用法: <button class="btn-complete btn-breathe">...</button> */
+.btn-breathe {
+  animation: btn-breathe 2.5s var(--ease-gentle) infinite;
+}
+@keyframes btn-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 2px 12px rgba(248, 180, 200, 0.25); }
+  50%      { transform: scale(1.03); box-shadow: 0 4px 20px rgba(248, 180, 200, 0.45); }
+}
+/* 用户 hover 时停止呼吸, 让 hover 效果接管 */
+.btn-breathe:hover {
+  animation: none;
+}
+
+
+/* ============================================================
+   5. 卡片动画 (Card Animations)
+   ============================================================ */
+
+/* --- 5a. 列表卡片: 依次淡入上浮 (stagger) --- */
+/* 用法: 父容器加 .card-list, 每张卡片加 .card-list__item
+   控制 stagger: 给 .card-list__item 加 style="--i:0" (0-based index) */
+.card-list__item {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: card-stagger-in var(--dur-slow) var(--ease-gentle) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+@keyframes card-stagger-in {
+  0%   { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- 5b. 卡片 hover 效果 --- */
+.card-list__item {
+  transition: transform var(--dur-fast) var(--ease-gentle),
+              box-shadow var(--dur-fast) var(--ease-gentle);
+}
+.card-list__item:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--hover-shadow);
+}
+
+
+/* --- 5c. 空状态: 小花朵绽放动画 --- */
+/* 用法: <div class="empty-state__flower">🌸</div> */
+.empty-state__flower {
+  display: inline-block;
+  animation: flower-bloom 2s var(--ease-gentle) infinite alternate;
+  transform-origin: center bottom;
+}
+@keyframes flower-bloom {
+  0%   { transform: scale(0.85) rotate(-5deg); opacity: 0.7; }
+  50%  { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.05) rotate(5deg); opacity: 0.9; }
+}
+
+/* 空状态容器整体淡入 */
+.empty-state {
+  animation: empty-fade-in var(--dur-bloom) var(--ease-gentle) both;
+}
+@keyframes empty-fade-in {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ============================================================
+   6. 鼓励语动画 (Encouragement Text)
+   ============================================================ */
+
+/* --- 6a. 逐字显现 (typewriter, 柔和版) --- */
+/* 用法: <p class="text-reveal">
+         <span style="--char-i:0">你</span><span style="--char-i:1">做</span>...
+       </p>
+   JS 可以遍历文本节点自动包裹 */
+.text-reveal span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: char-appear var(--dur-normal) var(--ease-gentle) both;
+  animation-delay: calc(var(--char-i, 0) * 50ms);
+}
+@keyframes char-appear {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- 6b. Emoji 微弹跳 --- */
+/* 用法: <span class="emoji-bounce">🎉</span> */
+.emoji-bounce {
+  display: inline-block;
+  animation: emoji-pop 0.6s var(--ease-bounce) infinite alternate;
+}
+@keyframes emoji-pop {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.15) translateY(-3px); }
+}
+
+
+/* --- 6c. 鼓励语背景: 渐变色缓慢切换 --- */
+/* 用法: <div class="gradient-shift-bg">...</div> */
+.gradient-shift-bg {
+  background: linear-gradient(135deg,
+    var(--pastel-pink),
+    var(--pastel-peach),
+    var(--pastel-yellow),
+    var(--pastel-green),
+    var(--pastel-blue),
+    var(--pastel-lavender)
+  );
+  background-size: 300% 300%;
+  animation: gradient-wander 12s var(--ease-smooth) infinite;
+}
+@keyframes gradient-wander {
+  0%   { background-position: 0% 50%; }
+  25%  { background-position: 50% 0%; }
+  50%  { background-position: 100% 50%; }
+  75%  { background-position: 50% 100%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+/* ============================================================
+   7. 庆祝动画 (Celebration)
+   ============================================================ */
+
+/* --- 7a. 花瓣飘落 (独立使用, 与 3c 的 overlay 分开) --- */
+/* 用法: <div class="petal-rain">
+         <div class="rain-petal"></div> x12
+       </div> */
+.petal-rain {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.rain-petal {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50% 0 50% 50%;
+  opacity: 0;
+  top: -15px;
+  animation: petal-fall linear forwards;
+}
+/* 12 片花瓣, 分散排列 */
+.rain-petal:nth-child(1)  { left: 5%;  --drift: -18px; animation-duration: 3.0s; animation-delay: 0.0s; background: var(--pastel-pink); }
+.rain-petal:nth-child(2)  { left: 13%; --drift:  14px; animation-duration: 3.4s; animation-delay: 0.3s; background: var(--pastel-peach); }
+.rain-petal:nth-child(3)  { left: 22%; --drift: -22px; animation-duration: 2.8s; animation-delay: 0.6s; background: var(--pastel-lavender); }
+.rain-petal:nth-child(4)  { left: 32%; --drift:  18px; animation-duration: 3.2s; animation-delay: 0.1s; background: var(--pastel-yellow); }
+.rain-petal:nth-child(5)  { left: 42%; --drift: -16px; animation-duration: 3.5s; animation-delay: 0.4s; background: var(--pastel-green); }
+.rain-petal:nth-child(6)  { left: 52%; --drift:  20px; animation-duration: 2.9s; animation-delay: 0.7s; background: var(--pastel-pink); }
+.rain-petal:nth-child(7)  { left: 61%; --drift: -14px; animation-duration: 3.3s; animation-delay: 0.2s; background: var(--pastel-blue); }
+.rain-petal:nth-child(8)  { left: 70%; --drift:  16px; animation-duration: 3.1s; animation-delay: 0.5s; background: var(--pastel-peach); }
+.rain-petal:nth-child(9)  { left: 78%; --drift: -20px; animation-duration: 3.6s; animation-delay: 0.8s; background: var(--pastel-lavender); }
+.rain-petal:nth-child(10) { left: 85%; --drift:  12px; animation-duration: 2.7s; animation-delay: 0.15s; background: var(--pastel-yellow); }
+.rain-petal:nth-child(11) { left: 92%; --drift: -10px; animation-duration: 3.4s; animation-delay: 0.55s; background: var(--pastel-green); }
+.rain-petal:nth-child(12) { left: 48%; --drift:   8px; animation-duration: 3.0s; animation-delay: 0.35s; background: var(--pastel-blue); }
+
+
+/* --- 7b. 光芒放射效果 --- */
+/* 用法: <div class="sunburst"></div> — 作为庆祝卡片背景 */
+.sunburst {
+  position: relative;
+}
+.sunburst::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 215, 0, 0.12) 15deg,
+    transparent 30deg
+  );
+  animation: sunburst-spin 8s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes sunburst-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+/* --- 7c. 模糊背景 + 居中庆祝卡片 --- */
+/* 用法:
+   <div class="celebration-backdrop">
+     <div class="celebration-card sunburst">
+       <h2>你做到了!</h2>
+     </div>
+   </div>
+*/
+.celebration-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  animation: backdrop-fade-in var(--dur-bloom) var(--ease-gentle) both;
+}
+@keyframes backdrop-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.celebration-card {
+  position: relative;
+  padding: 3rem 2.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  animation: celebration-pop var(--dur-bloom) var(--ease-bounce) both;
+  animation-delay: 200ms;
+  overflow: hidden;
+  z-index: 1;
+}
+@keyframes celebration-pop {
+  0%   { opacity: 0; transform: scale(0.8) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+/* ============================================================
+   8. 通用工具动画 (Utility Animations)
+   ============================================================ */
+
+/* --- 8a. 淡入 --- */
+.fade-in {
+  animation: fade-in var(--dur-normal) var(--ease-gentle) both;
+}
+@keyframes fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* --- 8b. 从下方滑入 --- */
+.slide-up {
+  animation: slide-up var(--dur-normal) var(--ease-gentle) both;
+}
+@keyframes slide-up {
+  0%   { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 8c. 从左侧滑入 --- */
+.slide-in-left {
+  animation: slide-in-left var(--dur-normal) var(--ease-gentle) both;
+}
+@keyframes slide-in-left {
+  0%   { opacity: 0; transform: translateX(-16px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* --- 8d. 旋转加载 --- */
+.spin-gentle {
+  animation: spin-gentle 1.2s linear infinite;
+}
+@keyframes spin-gentle {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* --- 8e. 轻微摇晃 (引起注意) --- */
+.shake-soft {
+  animation: shake-soft 0.5s var(--ease-bounce);
+}
+@keyframes shake-soft {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(2px); }
+}
+
+
+/* ============================================================
+   9. 无障碍: prefers-reduced-motion
+   ============================================================
+   当用户系统偏好"减少动画"时:
+   - 保留 fade-in (opacity only), 时长缩短至 100ms
+   - 关闭所有位移、缩放、旋转、弹跳、粒子、花瓣
+   - 进度条不再闪烁, 背景渐变停止移动
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* 保留淡入, 但缩短 */
+  .fade-in,
+  .card-list__item,
+  .step-card--enter,
+  .text-reveal span,
+  .empty-state,
+  .celebration-backdrop,
+  .celebration-card {
+    animation: fade-in 100ms ease both;
+  }
+
+  /* 禁用花瓣/粒子/光芒 */
+  .celebration-petal,
+  .rain-petal,
+  .particle,
+  .sunburst::before {
+    display: none !important;
+  }
+
+  /* 禁用呼吸和弹跳 */
+  .btn-breathe,
+  .emoji-bounce,
+  .empty-state__flower {
+    animation: none !important;
+  }
+
+  /* 进度条不闪烁 */
+  .progress-bar__fill--pulse,
+  .progress-bar--complete .progress-bar__fill,
+  .progress-bar--complete::after {
+    animation: none !important;
+  }
+
+  /* 背景渐变停止 */
+  .gradient-shift-bg {
+    animation: none !important;
+  }
+}

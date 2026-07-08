@@ -1,0 +1,24 @@
+{
+  "name": "拖延症启动器",
+  "short_name": "启动器",
+  "description": "将日常任务拆解为极小步骤，一次只显示一步，引导你逐步完成",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFF8F0",
+  "theme_color": "#FFB7C5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
