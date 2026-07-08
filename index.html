@@ -3,41 +3,63 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#FFB7C5">
+  <meta name="theme-color" content="#D4956A">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="将日常任务拆解为极小步骤，一次只显示一步，引导你逐步完成">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
   <title>拖延症启动器</title>
   <style>
-    /* ===================== CSS Variables ===================== */
+    /* ===================== CSS Variables — 温暖手帐风 ===================== */
     :root {
-      --bg-warm: #FFF8F0;
-      --bg-card: #FFFFFF;
-      --primary: #FFB7C5;
-      --primary-dark: #E89AAB;
-      --primary-light: #FFD6DF;
-      --secondary: #98D8C8;
-      --secondary-dark: #7BC4B2;
-      --secondary-light: #BBEAE0;
-      --accent: #D4A5E5;
-      --accent-dark: #C08AD4;
-      --accent-light: #E5C4F0;
-      --text-primary: #3A3A3A;
-      --text-secondary: #8B8B8B;
-      --text-hint: #BDBDBD;
-      --shadow-soft: 0 2px 12px rgba(0,0,0,0.06);
-      --shadow-card: 0 4px 20px rgba(0,0,0,0.08);
-      --shadow-float: 0 8px 32px rgba(0,0,0,0.12);
-      --radius-sm: 12px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
+      /* 手帐纸张色系 */
+      --bg-paper: #FAF8F5;
+      --bg-warm: #FFF9EC;
+      --bg-card: #FFFEF9;
+      --bg-card-done: #F5F0EB;
+
+      /* 主色调 — 暖棕系 */
+      --primary: #D4956A;
+      --primary-dark: #B87A52;
+      --primary-light: #F0D5C0;
+      --primary-pale: #FEF5ED;
+
+      /* 辅色 — 若草绿 */
+      --secondary: #A8C686;
+      --secondary-dark: #8BAF6A;
+      --secondary-light: #D5E8C0;
+
+      /* 强调色 — 桜色 */
+      --accent: #F2C6D0;
+      --accent-dark: #E8A8B4;
+      --accent-light: #FCE8ED;
+
+      /* 文字 — 利休鼠 */
+      --text-primary: #4A3F35;
+      --text-secondary: #8B7D6B;
+      --text-hint: #B8AFA5;
+      --text-warm: #C4A882;
+
+      /* 手帐特色 */
+      --paper-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      --shadow-note: 2px 2px 0 rgba(139, 119, 101, 0.08), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-note-hover: 3px 3px 0 rgba(139, 119, 101, 0.1), 0 4px 12px rgba(0,0,0,0.06);
+
+      /* 圆角 — 便签纸感 */
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 12px;
       --radius-full: 50%;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-      --transition-slow: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+      /* 动效 */
+      --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --transition: all 0.3s var(--ease-gentle);
+      --transition-bounce: all 0.5s var(--ease-bounce);
+      --transition-slow: all 0.6s var(--ease-gentle);
     }
 
     /* ===================== Reset & Base ===================== */
@@ -53,9 +75,10 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC",
+      font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, "Noto Sans SC", "PingFang SC",
                    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      background: var(--bg-warm);
+      background-color: var(--bg-paper);
+      background-image: var(--paper-texture);
       color: var(--text-primary);
       min-height: 100dvh;
       overflow-x: hidden;
@@ -132,13 +155,24 @@
     }
 
     @keyframes confetti-fall {
-      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+      0% { transform: translateY(-100vh) translateX(0) rotate(0deg); opacity: 0.9; }
+      25% { transform: translateY(-50vh) translateX(20px) rotate(90deg); opacity: 0.9; }
+      50% { transform: translateY(0vh) translateX(-10px) rotate(180deg); opacity: 0.8; }
+      75% { transform: translateY(50vh) translateX(15px) rotate(270deg); opacity: 0.6; }
+      100% { transform: translateY(100vh) translateX(-5px) rotate(360deg); opacity: 0; }
+    }
+
+    @keyframes petal-fall {
+      0% { transform: translateY(-5vh) translateX(0) rotate(0deg) scale(1); opacity: 0.9; }
+      25% { transform: translateY(20vh) translateX(25px) rotate(72deg) scale(0.95); opacity: 0.85; }
+      50% { transform: translateY(45vh) translateX(-15px) rotate(144deg) scale(0.9); opacity: 0.7; }
+      75% { transform: translateY(70vh) translateX(20px) rotate(216deg) scale(0.85); opacity: 0.5; }
+      100% { transform: translateY(105vh) translateX(-10px) rotate(288deg) scale(0.8); opacity: 0; }
     }
 
     @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 183, 197, 0.4); }
-      50% { box-shadow: 0 0 0 12px rgba(255, 183, 197, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(212, 149, 106, 0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(212, 149, 106, 0); }
     }
 
     @keyframes check-mark {
@@ -170,16 +204,17 @@
     }
 
     .home-greeting {
-      font-size: 1.15rem;
+      font-size: 1.3rem;
       color: var(--text-primary);
-      font-weight: 500;
+      font-weight: 300;
+      font-family: 'LXGW WenKai', serif;
     }
 
     .streak-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+      background: linear-gradient(135deg, var(--primary-pale), var(--accent-light));
       padding: 8px 16px;
       border-radius: 20px;
       font-size: 0.85rem;
@@ -201,19 +236,22 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      font-family: 'LXGW WenKai', serif;
+      font-weight: 400;
     }
 
-    /* Flow Cards */
+    /* Flow Cards — 便签纸风格 */
     .flow-card {
       background: var(--bg-card);
-      border-radius: var(--radius-md);
+      border-radius: 2px 8px 8px 2px;
       padding: 16px;
       margin-bottom: 12px;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       transition: var(--transition);
       cursor: pointer;
       position: relative;
       overflow: hidden;
+      border-left: 3px solid var(--primary-light);
     }
 
     .flow-card::before {
@@ -222,15 +260,15 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
       opacity: 0;
       transition: var(--transition);
     }
 
     .flow-card:hover, .flow-card:active {
-      box-shadow: var(--shadow-card);
-      transform: translateY(-2px);
+      box-shadow: var(--shadow-note-hover);
+      transform: translateY(-1px);
     }
 
     .flow-card:hover::before, .flow-card:active::before {
@@ -282,16 +320,16 @@
 
     .progress-bar {
       width: 60px;
-      height: 6px;
-      background: #F0F0F0;
-      border-radius: 3px;
+      height: 10px;
+      background: #F0EBE6;
+      border-radius: 2px;
       overflow: hidden;
     }
 
     .progress-fill {
       height: 100%;
-      border-radius: 3px;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
       transition: width 0.6s ease;
     }
 
@@ -318,13 +356,15 @@
     }
 
     .flow-start-btn {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: white;
+      background: var(--primary-pale);
+      color: var(--primary-dark);
+      border: 2px dashed var(--primary);
+      border-radius: 50%;
     }
 
     .flow-start-btn:hover {
-      transform: scale(1.02);
-      box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(212, 149, 106, 0.25);
     }
 
     .flow-edit-btn {
@@ -349,6 +389,11 @@
       border-radius: 12px;
       font-size: 0.75rem;
       font-weight: 500;
+    }
+
+    .flow-card-done {
+      background: var(--bg-card-done);
+      opacity: 0.85;
     }
 
     /* ===================== Execute View ===================== */
@@ -387,15 +432,15 @@
 
     .execute-progress-bar {
       width: 120px;
-      height: 4px;
-      background: rgba(255,255,255,0.3);
+      height: 10px;
+      background: rgba(139, 119, 101, 0.12);
       border-radius: 2px;
       overflow: hidden;
     }
 
     .execute-progress-fill {
       height: 100%;
-      background: white;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
       border-radius: 2px;
       transition: width 0.6s ease;
     }
@@ -423,12 +468,13 @@
     }
 
     .step-name {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 700;
       color: var(--text-primary);
       margin-bottom: 8px;
       animation: slideUp 0.4s ease 0.1s both;
       line-height: 1.4;
+      font-family: 'LXGW WenKai', serif;
     }
 
     .step-hint {
@@ -440,11 +486,12 @@
 
     .step-encouragement {
       font-size: 0.85rem;
-      color: var(--accent-dark);
+      color: var(--text-warm);
       min-height: 24px;
       margin-bottom: 32px;
-      animation: fadeIn 0.5s ease;
+      animation: encourageBlur 0.8s ease;
       font-style: italic;
+      font-family: 'LXGW WenKai', serif;
     }
 
     .execute-actions {
@@ -460,18 +507,27 @@
     .done-btn {
       width: 100%;
       padding: 18px 32px;
-      border-radius: var(--radius-lg);
+      border-radius: 50%;
       font-size: 1.15rem;
       font-weight: 600;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-      box-shadow: 0 4px 20px rgba(255, 183, 197, 0.4);
+      background: var(--primary-pale);
+      color: var(--primary-dark);
+      border: 2px dashed var(--primary);
+      box-shadow: none;
       transition: var(--transition-bounce);
-      animation: pulse-glow 2s infinite;
+      animation: none;
+      aspect-ratio: 1;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.3;
     }
 
     .done-btn:active {
-      transform: scale(0.96);
+      animation: stamp-press 0.4s ease;
     }
 
     .skip-btn {
@@ -499,7 +555,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       z-index: 100;
       font-size: 1.2rem;
       color: var(--text-primary);
@@ -541,10 +597,16 @@
 
     .confetti-piece {
       position: absolute;
-      width: 10px;
-      height: 10px;
-      top: -10px;
-      animation: confetti-fall linear forwards;
+      top: -20px;
+      width: 14px;
+      height: 14px;
+      animation: petal-fall linear forwards;
+      opacity: 0.85;
+    }
+
+    .confetti-piece svg {
+      width: 100%;
+      height: 100%;
     }
 
     .celebrate-emoji {
@@ -559,6 +621,7 @@
       color: var(--text-primary);
       margin-bottom: 12px;
       animation: slideUp 0.4s ease 0.2s both;
+      font-family: 'LXGW WenKai', serif;
     }
 
     .celebrate-message {
@@ -608,15 +671,15 @@
     }
 
     .celebrate-btn.primary {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+      background: var(--primary);
       color: white;
-      box-shadow: 0 4px 16px rgba(255, 183, 197, 0.3);
+      box-shadow: var(--shadow-note);
     }
 
     .celebrate-btn.secondary {
-      background: var(--bg-card);
+      background: var(--bg-warm);
       color: var(--text-secondary);
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
     }
 
     .celebrate-btn:active {
@@ -639,7 +702,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       z-index: 100;
       font-size: 1.2rem;
       color: var(--text-primary);
@@ -667,16 +730,17 @@
     .form-input {
       width: 100%;
       padding: 14px 16px;
-      border-radius: var(--radius-sm);
+      border-radius: 2px 8px 8px 2px;
       background: var(--bg-card);
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       font-size: 1rem;
       color: var(--text-primary);
       transition: var(--transition);
+      border-left: 3px solid var(--primary-light);
     }
 
     .form-input:focus {
-      box-shadow: var(--shadow-card), 0 0 0 2px var(--primary-light);
+      box-shadow: var(--shadow-note-hover), 0 0 0 2px var(--primary-light);
     }
 
     .form-input::placeholder {
@@ -693,18 +757,18 @@
     .emoji-option {
       width: 44px;
       height: 44px;
-      border-radius: var(--radius-sm);
+      border-radius: 2px 6px 6px 2px;
       background: var(--bg-card);
       font-size: 1.4rem;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: var(--transition);
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
     }
 
     .emoji-option.selected {
-      background: var(--primary-light);
+      background: var(--primary-pale);
       box-shadow: 0 0 0 2px var(--primary);
       transform: scale(1.1);
     }
@@ -730,7 +794,7 @@
       width: 28px;
       height: 28px;
       border-radius: var(--radius-full);
-      background: var(--primary-light);
+      background: var(--primary-pale);
       color: var(--primary-dark);
       display: flex;
       align-items: center;
@@ -743,9 +807,9 @@
     .step-edit-input {
       flex: 1;
       padding: 12px 14px;
-      border-radius: var(--radius-sm);
+      border-radius: 2px 6px 6px 2px;
       background: var(--bg-card);
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       font-size: 0.9rem;
       color: var(--text-primary);
     }
@@ -753,9 +817,9 @@
     .step-edit-time {
       width: 60px;
       padding: 12px 10px;
-      border-radius: var(--radius-sm);
+      border-radius: 2px 6px 6px 2px;
       background: var(--bg-card);
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
       font-size: 0.8rem;
       color: var(--text-secondary);
       text-align: center;
@@ -797,13 +861,13 @@
     .save-flow-btn {
       width: 100%;
       padding: 16px;
-      border-radius: var(--radius-md);
+      border-radius: 2px 8px 8px 2px;
       font-size: 1.05rem;
       font-weight: 600;
-      background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+      background: var(--secondary);
       color: white;
       margin-top: 24px;
-      box-shadow: 0 4px 16px rgba(152, 216, 200, 0.3);
+      box-shadow: var(--shadow-note);
       transition: var(--transition-bounce);
     }
 
@@ -832,10 +896,11 @@
 
     .stat-card {
       background: var(--bg-card);
-      border-radius: var(--radius-md);
+      border-radius: 2px 8px 8px 2px;
       padding: 20px 16px;
       text-align: center;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
+      border-left: 3px solid var(--primary-light);
     }
 
     .stat-icon {
@@ -865,9 +930,10 @@
       gap: 12px;
       padding: 12px;
       background: var(--bg-card);
-      border-radius: var(--radius-sm);
+      border-radius: 2px 8px 8px 2px;
       margin-bottom: 8px;
-      box-shadow: var(--shadow-soft);
+      box-shadow: var(--shadow-note);
+      border-left: 3px solid var(--primary-light);
     }
 
     .history-emoji {
@@ -904,13 +970,13 @@
       width: 56px;
       height: 56px;
       border-radius: var(--radius-full);
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+      background: var(--primary);
       color: white;
       font-size: 1.6rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: var(--shadow-float);
+      box-shadow: var(--shadow-note-hover);
       transition: var(--transition-bounce);
       z-index: 50;
     }
@@ -919,7 +985,7 @@
       transform: scale(0.9) rotate(90deg);
     }
 
-    /* ===================== Bottom Nav ===================== */
+    /* ===================== Bottom Nav — 手帐标签页 ===================== */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -927,7 +993,8 @@
       transform: translateX(-50%);
       width: 100%;
       max-width: 480px;
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--bg-card);
+      background-image: var(--paper-texture);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       display: flex;
@@ -936,7 +1003,7 @@
       padding: 8px 0;
       padding-bottom: max(8px, env(safe-area-inset-bottom));
       z-index: 40;
-      border-top: 1px solid rgba(0,0,0,0.04);
+      border-top: 1px solid rgba(139, 119, 101, 0.1);
     }
 
     .nav-item {
@@ -950,10 +1017,25 @@
       font-size: 0.65rem;
       transition: var(--transition);
       border-radius: var(--radius-sm);
+      position: relative;
     }
 
     .nav-item.active {
-      color: var(--primary-dark);
+      color: var(--primary);
+    }
+
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 3px;
+      background: var(--primary);
+      border-radius: 2px;
+      /* wavy underline simulation */
+      clip-path: polygon(0% 60%, 8% 30%, 16% 70%, 24% 30%, 32% 70%, 40% 30%, 48% 70%, 56% 30%, 64% 70%, 72% 30%, 80% 70%, 88% 30%, 100% 60%, 100% 100%, 0% 100%);
     }
 
     .nav-item-icon {
@@ -973,14 +1055,15 @@
       transform: translateX(-50%) translateY(-100px);
       background: var(--bg-card);
       padding: 14px 24px;
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-float);
+      border-radius: 2px 8px 8px 2px;
+      box-shadow: var(--shadow-note-hover);
       font-size: 0.9rem;
       color: var(--text-primary);
       z-index: 2000;
       transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       text-align: center;
       max-width: 90%;
+      border-left: 3px solid var(--primary-light);
     }
 
     .toast.show {
@@ -1031,8 +1114,9 @@
       width: 85%;
       max-width: 320px;
       text-align: center;
-      box-shadow: var(--shadow-float);
+      box-shadow: var(--shadow-note-hover);
       animation: bounceIn 0.4s ease;
+      border: 1px solid rgba(139, 119, 101, 0.08);
     }
 
     .dialog-title {
@@ -1068,7 +1152,7 @@
     }
 
     .dialog-btn.confirm {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: var(--primary);
       color: white;
     }
 
@@ -1087,11 +1171,11 @@
       transition: background 1s ease;
     }
 
-    .execute-bg.phase-0 { background: linear-gradient(180deg, #E8F4FD 0%, var(--bg-warm) 100%); }
-    .execute-bg.phase-1 { background: linear-gradient(180deg, #E0F2EE 0%, var(--bg-warm) 100%); }
-    .execute-bg.phase-2 { background: linear-gradient(180deg, #FFF3E0 0%, var(--bg-warm) 100%); }
-    .execute-bg.phase-3 { background: linear-gradient(180deg, #FFEBEE 0%, var(--bg-warm) 100%); }
-    .execute-bg.phase-4 { background: linear-gradient(180deg, #FCE4EC 0%, var(--bg-warm) 100%); }
+    .execute-bg.phase-0 { background: linear-gradient(180deg, #FEF5ED 0%, var(--bg-paper) 100%); }
+    .execute-bg.phase-1 { background: linear-gradient(180deg, #F0EDE8 0%, var(--bg-paper) 100%); }
+    .execute-bg.phase-2 { background: linear-gradient(180deg, #FFF9EC 0%, var(--bg-paper) 100%); }
+    .execute-bg.phase-3 { background: linear-gradient(180deg, #FCE8ED 0%, var(--bg-paper) 100%); }
+    .execute-bg.phase-4 { background: linear-gradient(180deg, #F5F0EB 0%, var(--bg-paper) 100%); }
 
     /* ===================== Scrollbar ===================== */
     ::-webkit-scrollbar { width: 4px; }
@@ -1111,6 +1195,180 @@
       }
       .step-emoji {
         font-size: 3rem;
+      }
+      .done-btn {
+        width: 120px;
+        height: 120px;
+        font-size: 1rem;
+      }
+    }
+
+    /* ===================== 印章按压动画 ===================== */
+    @keyframes stamp-press {
+      0% { transform: scale(1); }
+      30% { transform: scale(0.88) rotate(-2deg); }
+      60% { transform: scale(1.08) rotate(1deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    /* ===================== 鼓励语模糊→清晰动画 ===================== */
+    @keyframes encourageBlur {
+      0% { opacity: 0; filter: blur(8px); transform: translateY(6px); }
+      100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+    }
+
+    /* ===================== 手写删除线动画 ===================== */
+    @keyframes strikethrough {
+      0% { width: 0; }
+      100% { width: 100%; }
+    }
+
+    .flow-card[data-completed="true"]::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 8px;
+      height: 2px;
+      width: 0;
+      background: var(--primary);
+      opacity: 0.4;
+      transform: rotate(-2deg);
+      animation: strikethrough 0.6s ease forwards 0.2s;
+      pointer-events: none;
+    }
+
+    /* ===================== 模板卡片错位排版 ===================== */
+    #templateList .flow-card:nth-child(odd) {
+      transform: rotate(-0.3deg);
+      margin-left: 4px;
+    }
+
+    #templateList .flow-card:nth-child(even) {
+      transform: rotate(0.3deg);
+      margin-right: 4px;
+    }
+
+    #templateList .flow-card:nth-child(odd):hover,
+    #templateList .flow-card:nth-child(even):hover {
+      transform: rotate(0deg) translateY(-1px);
+    }
+
+    /* ===================== 空状态 — 会呼吸的小植物 ===================== */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--text-hint);
+      position: relative;
+    }
+
+    .empty-state-emoji {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .empty-state::after {
+      content: '';
+      display: block;
+      width: 60px;
+      height: 80px;
+      margin: 20px auto 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3C!-- pot --%3E%3Cpath d='M18 55 L18 48 Q18 42 30 42 Q42 42 42 48 L42 55 Q42 60 38 62 L22 62 Q18 60 18 55Z' fill='%23D4956A' opacity='0.6'/%3E%3C!-- soil --%3E%3Cellipse cx='30' cy='44' rx='12' ry='3' fill='%238B7D6B' opacity='0.4'/%3E%3C!-- stem --%3E%3Cpath d='M30 42 Q30 30 28 22' stroke='%23A8C686' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C!-- leaf left --%3E%3Cpath d='M28 28 Q20 24 22 18 Q26 22 28 28Z' fill='%23A8C686' opacity='0.7'/%3E%3C!-- leaf right --%3E%3Cpath d='M28 22 Q34 16 38 20 Q32 20 28 22Z' fill='%238BAF6A' opacity='0.7'/%3E%3C!-- tiny bud --%3E%3Ccircle cx='28' cy='18' r='3' fill='%23F2C6D0' opacity='0.6'/%3E%3Ccircle cx='29' cy='16' r='2' fill='%23F2C6D0' opacity='0.4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-size: contain;
+      opacity: 0.7;
+      animation: breathe-plant 3s ease-in-out infinite;
+    }
+
+    @keyframes breathe-plant {
+      0%, 100% { transform: scale(1) translateY(0); opacity: 0.7; }
+      50% { transform: scale(1.03) translateY(-3px); opacity: 0.85; }
+    }
+
+    /* ===================== 手绘波浪分割线 ===================== */
+    .wave-divider {
+      display: block;
+      width: 100%;
+      height: 12px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+
+    /* ===================== 完成页面桜色渐变 ===================== */
+    .celebrate-view.active {
+      background: linear-gradient(180deg, var(--accent-light) 0%, var(--bg-paper) 60%);
+    }
+
+    /* ===================== 朱印印章 ===================== */
+    .celebrate-stamp {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      animation: stamp-press 0.8s var(--ease-bounce) 0.3s both;
+    }
+
+    .celebrate-stamp svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ===================== 花瓣容器覆盖 ===================== */
+    .petal-piece {
+      position: absolute;
+      top: -20px;
+      width: 14px;
+      height: 14px;
+      animation: petal-fall linear forwards;
+      opacity: 0.85;
+    }
+
+    .petal-piece svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ===================== prefers-reduced-motion ===================== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .streak-badge {
+        animation: none !important;
+      }
+      .empty-state::after {
+        animation: none !important;
+        opacity: 0.7;
+      }
+      .step-encouragement {
+        animation: none !important;
+        filter: none !important;
+        opacity: 1 !important;
+      }
+      .done-btn:active {
+        animation: none !important;
+      }
+      #templateList .flow-card:nth-child(odd),
+      #templateList .flow-card:nth-child(even) {
+        transform: none !important;
+      }
+    }
+
+    /* ===================== 320px 极小屏适配 ===================== */
+    @media (max-width: 320px) {
+      .done-btn {
+        width: 100px;
+        height: 100px;
+        font-size: 0.9rem;
+      }
+      .view {
+        padding: 12px;
       }
     }
   </style>
@@ -1139,6 +1397,9 @@
 
     <!-- ========== HOME VIEW ========== -->
     <div class="view active" id="homeView">
+      <svg class="wave-divider" viewBox="0 0 480 12" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+        <path d="M0 6 Q20 2 40 6 T80 6 T120 6 T160 6 T200 6 T240 6 T280 6 T320 6 T360 6 T400 6 T440 6 T480 6" stroke="#D4956A" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+      </svg>
       <div class="home-header">
         <div class="home-date" id="homeDate"></div>
         <div class="home-greeting" id="homeGreeting"></div>
@@ -1187,6 +1448,14 @@
 
     <!-- ========== CELEBRATE VIEW ========== -->
     <div class="celebrate-view" id="celebrateView">
+      <div class="celebrate-stamp">
+        <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="40" cy="40" r="34" stroke="#D4956A" stroke-width="3" fill="none" opacity="0.7"/>
+          <circle cx="40" cy="40" r="28" stroke="#D4956A" stroke-width="1" fill="none" opacity="0.3"/>
+          <text x="40" y="38" text-anchor="middle" font-family="'LXGW WenKai', serif" font-size="14" fill="#D4956A" opacity="0.8">达成</text>
+          <text x="40" y="52" text-anchor="middle" font-family="'LXGW WenKai', serif" font-size="10" fill="#D4956A" opacity="0.5">COMPLETE</text>
+        </svg>
+      </div>
       <div class="celebrate-emoji" id="celebrateEmoji">🎉</div>
       <div class="celebrate-title" id="celebrateTitle"></div>
       <div class="celebrate-message" id="celebrateMessage"></div>
@@ -1569,17 +1838,19 @@
       if (state.flows.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-emoji">🌸</div>
-            <div class="empty-state-text">还没有自定义流程<br>点击下方模板开始，或创建自己的流程</div>
+            <div class="empty-state-text" style="margin-top:8px">还没有自定义流程<br>点击下方模板开始，或创建自己的流程</div>
           </div>
         `;
+        // Insert animated SVG plant
+        const emptyDiv = container.querySelector('.empty-state');
+        if (emptyDiv) insertEmptyStatePlant(emptyDiv);
         return;
       }
 
       container.innerHTML = state.flows.map(flow => {
         const isCompleted = state.todayCompleted.includes(flow.id);
         return `
-          <div class="flow-card" data-flow-id="${flow.id}">
+          <div class="flow-card${isCompleted ? ' flow-card-done' : ''}" data-flow-id="${flow.id}"${isCompleted ? ' data-completed="true"' : ''}>
             <div class="flow-card-header">
               <div class="flow-card-info">
                 <div class="flow-card-emoji">${flow.emoji}</div>
@@ -1903,6 +2174,9 @@
       // Haptic feedback if available
       if (navigator.vibrate) navigator.vibrate(30);
 
+      // Ink ripple effect on done button
+      createInkRipple(document.getElementById('doneBtn'));
+
       if (idx + 1 >= total) {
         // All done!
         setTimeout(() => finishExecution(), 800);
@@ -2009,25 +2283,26 @@
       const container = document.getElementById('confettiContainer');
       container.innerHTML = '';
 
-      const colors = ['#FFB7C5', '#98D8C8', '#D4A5E5', '#FFD700', '#87CEEB', '#FFA07A'];
+      const petalColors = ['#F2C6D0', '#E8A8B4', '#FCE8ED', '#F0D5C0', '#D4956A', '#FFD6DF'];
 
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 25; i++) {
         const piece = document.createElement('div');
-        piece.className = 'confetti-piece';
+        piece.className = 'petal-piece';
         piece.style.left = Math.random() * 100 + '%';
-        piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.width = (Math.random() * 8 + 6) + 'px';
-        piece.style.height = (Math.random() * 8 + 6) + 'px';
-        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-        piece.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
-        piece.style.animationDelay = Math.random() * 1 + 's';
+        const size = (Math.random() * 10 + 10) + 'px';
+        piece.style.width = size;
+        piece.style.height = size;
+        piece.style.animationDuration = (Math.random() * 3 + 2.5) + 's';
+        piece.style.animationDelay = Math.random() * 2 + 's';
+        const color = petalColors[Math.floor(Math.random() * petalColors.length)];
+        piece.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2 Q14 6 10 10 Q6 6 10 2Z M10 10 Q14 14 10 18 Q6 14 10 10Z" fill="${color}" opacity="0.8"/></svg>`;
         container.appendChild(piece);
       }
 
       // Cleanup after animation
       setTimeout(() => {
         container.innerHTML = '';
-      }, 4000);
+      }, 6000);
     }
 
     /* ===================== Stats View ===================== */
@@ -2140,11 +2415,104 @@
       }
     }
 
+    /* ===================== Hand-Account Enhancements ===================== */
+
+    // Ink ripple effect on button press
+    function createInkRipple(btn) {
+      if (!btn || prefersReducedMotion) return;
+      const ripple = document.createElement('span');
+      ripple.style.cssText = `
+        position: absolute;
+        border-radius: 50%;
+        width: 20px; height: 20px;
+        background: rgba(212,149,106,0.35);
+        animation: rippleExpand 600ms ease-out forwards;
+        pointer-events: none;
+        left: 50%; top: 50%;
+        transform: translate(-50%, -50%);
+      `;
+      btn.style.position = btn.style.position || 'relative';
+      btn.style.overflow = 'hidden';
+      btn.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 650);
+    }
+
+    // Add ripple @keyframes if not exists
+    if (!document.getElementById('ripple-style')) {
+      const s = document.createElement('style');
+      s.id = 'ripple-style';
+      s.textContent = `
+        @keyframes rippleExpand {
+          0% { transform: translate(-50%,-50%) scale(0); opacity: 0.7; }
+          100% { transform: translate(-50%,-50%) scale(6); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(s);
+    }
+
+    // Placeholder rotation for create form
+    const placeholderTexts = [
+      '今天想做什么？',
+      '哪怕一件小事...',
+      '先试试2分钟？',
+      '就从打字开始'
+    ];
+    let placeholderIdx = 0;
+    function startPlaceholderRotation() {
+      const input = document.getElementById('flowNameInput');
+      if (!input || prefersReducedMotion) return;
+      setInterval(() => {
+        placeholderIdx = (placeholderIdx + 1) % placeholderTexts.length;
+        input.style.transition = 'opacity 0.4s ease';
+        input.style.opacity = '0.5';
+        setTimeout(() => {
+          input.placeholder = placeholderTexts[placeholderIdx];
+          input.style.opacity = '1';
+        }, 200);
+      }, 4000);
+    }
+
+    // SVG plant animation in empty state
+    function insertEmptyStatePlant(container) {
+      if (prefersReducedMotion) return;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 120 140');
+      svg.setAttribute('width', '120');
+      svg.setAttribute('height', '140');
+      svg.style.cssText = 'margin: 0 auto 16px; display: block;';
+      svg.innerHTML = `
+        <ellipse cx="60" cy="125" rx="28" ry="8" fill="#D4C4B0" opacity="0.4"/>
+        <rect x="40" y="95" width="40" height="30" rx="4" fill="#E8D5C4" stroke="#C4A882" stroke-width="1.5"/>
+        <rect x="44" y="98" width="32" height="5" rx="2" fill="#C4A882" opacity="0.3"/>
+        <path d="M60 95 Q60 70 60 55" stroke="#A8C686" stroke-width="3" fill="none" stroke-linecap="round">
+          <animate attributeName="d" dur="4s" repeatCount="indefinite"
+            values="M60 95 Q60 70 60 55;M60 95 Q57 70 60 55;M60 95 Q63 70 60 55;M60 95 Q60 70 60 55"/>
+        </path>
+        <path d="M60 65 Q45 48 40 55 Q48 58 60 65" fill="#A8C686">
+          <animateTransform attributeName="transform" type="rotate" values="-3 60 65;3 60 65;-3 60 65" dur="5s" repeatCount="indefinite"/>
+        </path>
+        <path d="M60 58 Q75 42 80 50 Q72 53 60 58" fill="#8BAF6A">
+          <animateTransform attributeName="transform" type="rotate" values="3 60 58;-3 60 58;3 60 58" dur="5.5s" repeatCount="indefinite"/>
+        </path>
+        <circle cx="60" cy="45" r="6" fill="#F2C6D0" opacity="0.8">
+          <animate attributeName="r" values="5;7;5" dur="3s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
+        </circle>
+      `;
+      container.insertBefore(svg, container.firstChild);
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Hook into renderFlowList to add plant for empty state
+    const _origRenderFlowList = typeof renderFlowList === 'function' ? renderFlowList : null;
+
     /* ===================== Init ===================== */
     function init() {
       loadState();
       renderHome();
       registerServiceWorker();
+      startPlaceholderRotation();
 
       // Handle back button
       window.addEventListener('popstate', (e) => {
