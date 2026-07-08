@@ -4,6 +4,10 @@
 
 一个专为拖延症患者设计的单文件PWA应用。把大任务拆成极小的步骤，每次只显示一步，引导你"先动起来"。
 
+**🎨 设计风格：温暖手帐风** — 霞鹜文楷书法字体 + 纸张纹理 + 便签纸卡片 + 印章按钮
+
+**🔗 在线体验：** https://jhkkv.github.io/anti-procrastination-launcher/
+
 ---
 
 ## ✨ 核心理念
@@ -125,9 +129,14 @@ php -S localhost:8080
 拖延症启动器/
 ├── index.html                              # 主应用（单文件PWA，HTML+CSS+JS全内联）
 ├── manifest.json                           # PWA配置（应用名称、图标、主题色）
-├── animations.css                          # 动画参考文件（开发参考，非运行时依赖）
+├── sw.js                                   # Service Worker（离线缓存）
+├── icon.svg                                # 应用图标
+├── animations.css                          # 动画参考文件（27个治愈风动画）
 ├── README.md                               # 项目文档（本文件）
-├── 财务报告-Token优化策略.md                  # 多Agent开发成本优化报告
+├── CHANGELOG.md                            # 开发工作记录（18个Agent工作日志）
+├── UI美化方案汇总.md                        # 18个UI美化方案（备选方案库）
+├── 财务报告-Token优化策略.md                  # Agent开发成本优化报告
+├── 财务报告-最终交付.md                       # 最终交付财务报告
 └── 知识库/                                  # RAG知识库（产品研发参考）
     ├── psychology/                         # 拖延心理学研究
     │   ├── 拖延心理学.md                    # 拖延行为的成因与干预策略
@@ -139,7 +148,8 @@ php -S localhost:8080
     │   └── 设计参考-色彩心理学.md             # 色彩对情绪的影响
     ├── product/                            # 产品参考
     │   ├── competitor-analysis.md          # 竞品分析（Habitica/Forest/Structured等）
-    │   ├── user-personas.md                # 四类目标用户画像
+    │   ├── user-personas.md                # 五类目标用户画像
+    │   └── feature-priorities.md           # 功能优先级矩阵与开发路线图
     │   └── feature-priorities.md           # 功能优先级矩阵（P0-P3）
     └── technical/                          # 技术参考
 ```
