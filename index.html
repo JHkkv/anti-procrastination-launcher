@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="description" content="将日常任务拆解为极小步骤，一次只显示一步，引导你逐步完成">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
@@ -1395,6 +1396,9 @@
 
   <div class="app" id="app">
 
+    <!-- Framebusting: prevent clickjacking -->
+    <script>if(window.top !== window.self){window.top.location = window.self.location}</script>
+
     <!-- ========== HOME VIEW ========== -->
     <div class="view active" id="homeView">
       <svg class="wave-divider" viewBox="0 0 480 12" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
@@ -1699,31 +1703,88 @@
       try {
         const saved = localStorage.getItem('procrastination-launcher');
         if (saved) {
+          const savedLen = saved.length;
+          // Reject abnormally large data (>500KB) to prevent DoS
+          if (savedLen > 500000) throw new Error('State payload too large: ' + savedLen);
+
           const parsed = JSON.parse(saved);
-          state.flows = parsed.flows || [];
-          state.history = parsed.history || [];
-          state.todayCompleted = parsed.todayCompleted || [];
-          state.streak = parsed.streak || 0;
-          state.lastActiveDate = parsed.lastActiveDate || null;
+
+          // Type validation
+          if (!Array.isArray(parsed.flows)) throw new Error('Invalid flows');
+          if (!Array.isArray(parsed.history)) throw new Error('Invalid history');
+          if (!Array.isArray(parsed.todayCompleted)) throw new Error('Invalid todayCompleted');
+          if (typeof parsed.streak !== 'number' || parsed.streak < 0 || parsed.streak > 36500) {
+            throw new Error('Invalid streak');
+          }
+
+          // Sanitize flows
+          if (parsed.flows.length > 500) parsed.flows = parsed.flows.slice(0, 500);
+          parsed.flows = parsed.flows.map(f => ({
+            id: sanitizeId(f.id || ''),
+            name: sanitizeName(f.name || ''),
+            emoji: sanitizeEmoji(f.emoji),
+            steps: Array.isArray(f.steps) ? f.steps.slice(0, 50).map(s => ({
+              name: String(s.name || '').replace(/[<>&]/g, '').slice(0, 200).trim() || '步骤',
+              time: String(s.time || '').replace(/[<>&]/g, '').slice(0, 20)
+            })) : [],
+            templateId: f.templateId ? sanitizeId(f.templateId) : undefined
+          }));
+
+          // Sanitize history
+          if (parsed.history.length > 100) parsed.history = parsed.history.slice(0, 100);
+          parsed.history = parsed.history.map(h => ({
+            flowName: String(h.flowName || '').replace(/[<>&]/g, '').slice(0, 100).trim() || '未知',
+            emoji: sanitizeEmoji(h.emoji),
+            steps: typeof h.steps === 'number' ? Math.min(h.steps, 9999) : 0,
+            date: String(h.date || '').replace(/[^0-9T:.\-Z]/g, '').slice(0, 30)
+          }));
+
+          // Sanitize todayCompleted
+          parsed.todayCompleted = parsed.todayCompleted.map(id => sanitizeId(id)).filter(Boolean);
+
+          state.flows = parsed.flows;
+          state.history = parsed.history;
+          state.todayCompleted = parsed.todayCompleted;
+          state.streak = parsed.streak;
+          state.lastActiveDate = parsed.lastActiveDate;
         }
         checkStreak();
       } catch (e) {
         console.error('Failed to load state:', e);
+        // Reset on corruption
+        state.flows = [];
+        state.history = [];
+        state.todayCompleted = [];
+        state.streak = 0;
+        state.lastActiveDate = null;
+        showToast('数据已重置');
       }
     }
 
     function saveState() {
       try {
         const toSave = {
-          flows: state.flows,
-          history: state.history,
+          flows: state.flows.slice(0, 500),
+          history: state.history.slice(0, 100),
           todayCompleted: state.todayCompleted,
           streak: state.streak,
           lastActiveDate: state.lastActiveDate
         };
-        localStorage.setItem('procrastination-launcher', JSON.stringify(toSave));
+        const json = JSON.stringify(toSave);
+        localStorage.setItem('procrastination-launcher', json);
       } catch (e) {
-        console.error('Failed to save state:', e);
+        if (e.name === 'QuotaExceededError') {
+          state.history = state.history.slice(0, 20);
+          try {
+            const toSave = { flows: state.flows.slice(0, 500), history: state.history, todayCompleted: state.todayCompleted, streak: state.streak, lastActiveDate: state.lastActiveDate };
+            localStorage.setItem('procrastination-launcher', JSON.stringify(toSave));
+            showToast('存储空间不足，已清理旧记录');
+          } catch (e2) {
+            showToast('保存失败，请释放存储空间');
+          }
+        } else {
+          showToast('保存失败');
+        }
       }
     }
 
@@ -1850,10 +1911,10 @@
       container.innerHTML = state.flows.map(flow => {
         const isCompleted = state.todayCompleted.includes(flow.id);
         return `
-          <div class="flow-card${isCompleted ? ' flow-card-done' : ''}" data-flow-id="${flow.id}"${isCompleted ? ' data-completed="true"' : ''}>
+          <div class="flow-card${isCompleted ? ' flow-card-done' : ''}" data-flow-id="${escapeAttr(flow.id)}"${isCompleted ? ' data-completed="true"' : ''}>
             <div class="flow-card-header">
               <div class="flow-card-info">
-                <div class="flow-card-emoji">${flow.emoji}</div>
+                <div class="flow-card-emoji">${escapeHtml(flow.emoji)}</div>
                 <div>
                   <div class="flow-card-name">${escapeHtml(flow.name)}</div>
                   <div class="flow-card-count">${flow.steps.length} 步${isCompleted ? ' · 已完成' : ''}</div>
@@ -1862,11 +1923,11 @@
               ${isCompleted ? '<span class="completed-badge">✅ 今日已完成</span>' : ''}
             </div>
             <div class="flow-card-actions">
-              <button class="flow-action-btn flow-start-btn" onclick="startFlow('${flow.id}')">
+              <button class="flow-action-btn flow-start-btn" onclick="startFlow('${escapeAttr(flow.id)}')">
                 ${isCompleted ? '再做一次' : '开始'} →
               </button>
-              <button class="flow-action-btn flow-edit-btn" onclick="editFlow('${flow.id}')">编辑</button>
-              <button class="flow-action-btn flow-delete-btn" onclick="confirmDeleteFlow('${flow.id}')">🗑️</button>
+              <button class="flow-action-btn flow-edit-btn" onclick="editFlow('${escapeAttr(flow.id)}')">编辑</button>
+              <button class="flow-action-btn flow-delete-btn" onclick="confirmDeleteFlow('${escapeAttr(flow.id)}')">🗑️</button>
             </div>
           </div>
         `;
@@ -2007,8 +2068,8 @@
       editor.innerHTML = steps.map((step, i) => `
         <div class="step-edit-row" data-index="${i}">
           <span class="step-edit-num">${i + 1}</span>
-          <input class="step-edit-input" placeholder="这一步做什么..." value="${escapeHtml(step.name)}" maxlength="30">
-          <input class="step-edit-time" placeholder="时长" value="${escapeHtml(step.time || '')}" maxlength="10">
+          <input class="step-edit-input" placeholder="这一步做什么..." value="${escapeAttr(step.name)}" maxlength="30">
+          <input class="step-edit-time" placeholder="时长" value="${escapeAttr(step.time || '')}" maxlength="10">
           <button class="step-remove-btn" onclick="removeStepRow(this)">×</button>
         </div>
       `).join('');
@@ -2346,7 +2407,7 @@
           });
           html += `
             <div class="history-item">
-              <span class="history-emoji">${record.emoji}</span>
+              <span class="history-emoji">${escapeHtml(record.emoji)}</span>
               <div class="history-info">
                 <div class="history-name">${escapeHtml(record.flowName)}</div>
                 <div class="history-date">${time}</div>
@@ -2402,6 +2463,31 @@
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    // Attribute-safe: also escapes quotes for use in HTML attributes
+    function escapeAttr(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Only allow safe id characters (alphanumeric, underscore, dash)
+    function sanitizeId(id) {
+      return String(id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+    }
+
+    // Validate emoji: single emoji sequence only
+    const EMOJI_REGEX = /^(\p{Emoji}|\p{Emoji_Presentation}|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\s)*$/u;
+    function sanitizeEmoji(emoji) {
+      if (!emoji || typeof emoji !== 'string') return '🌸';
+      const trimmed = emoji.trim();
+      return EMOJI_REGEX.test(trimmed) ? trimmed : '🌸';
+    }
+
+    // Sanitize flow name: strip HTML, limit length
+    function sanitizeName(name) {
+      return String(name).replace(/[<>&]/g, '').slice(0, 100).trim() || '未命名';
     }
 
     /* ===================== Service Worker ===================== */
