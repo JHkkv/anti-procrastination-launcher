@@ -2487,7 +2487,7 @@
 
     // Sanitize flow name: strip HTML, limit length
     function sanitizeName(name) {
-      return String(name).replace(/[<>&]/g, '').slice(0, 100).trim() || '未命名';
+      return String(name).replace(/[<>&\"']/g, '').slice(0, 100).trim() || '未命名';
     }
 
     /* ===================== Service Worker ===================== */
